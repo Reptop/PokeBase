@@ -43,6 +43,13 @@ WHERE customerID = @customerID;
 -- Browse cards - (Search option as well)
 SELECT cardID, setName, cardNumber, name, variant, year
 FROM Cards
+/* WHERE
+    (@setSearch  IS NULL OR setName   LIKE CONCAT('%', @setSearch,  '%')) AND
+    (@nameSearch IS NULL OR name      LIKE CONCAT('%', @nameSearch, '%')) AND
+    (@variant    IS NULL OR variant   = @variant) AND
+    (@yearMin    IS NULL OR year     >= @yearMin) AND
+    (@yearMax    IS NULL OR year     <= @yearMax)
+*/
 ORDER BY cardID
 LIMIT @limit OFFSET @offset;
 
@@ -110,6 +117,12 @@ SELECT
   L.price, L.type, L.cardCondition, L.quantityAvailable, L.status
 FROM Listings AS L
 JOIN Cards    AS C ON C.cardID = L.cardID
+/* WHERE
+    (@typeFilter      IS NULL OR L.type = @typeFilter) AND
+    (@statusFilter    IS NULL OR L.status = @statusFilter) AND
+    (@conditionFilter IS NULL OR L.cardCondition = @conditionFilter) AND
+    (@cardNameSearch  IS NULL OR C.name LIKE CONCAT('%', @cardNameSearch, '%'))
+*/
 ORDER BY L.listingID
 LIMIT @limit OFFSET @offset;
 
@@ -122,7 +135,7 @@ JOIN GradeSlabs        AS G  ON G.slabID = L.listingID
 JOIN GradingCompanies  AS GC ON GC.companyID = G.companyID
 JOIN Cards             AS C  ON C.cardID = L.cardID
 WHERE L.type = 'graded'
-AND (@companyID IS NULL OR GC.companyID = @companyID) */
+/* AND (@companyID IS NULL OR GC.companyID = @companyID) */
 ORDER BY L.listingID
 LIMIT @limit OFFSET @offset;
 
@@ -149,6 +162,7 @@ SET cardID = @cardID,
     status = @status
 WHERE listingID = @listingID;
 
+-- Delete listing (consider ON DELETE CASCADE to clean OrderItems and GradeSlabs)
 DELETE FROM Listings
 WHERE listingID = @listingID;
 
@@ -188,6 +202,12 @@ SELECT
   O.subtotal, O.tax, O.total
 FROM Orders AS O
 JOIN Customers AS C ON C.customerID = O.customerID
+/* WHERE
+    (@statusFilter  IS NULL OR O.status = @statusFilter) AND
+    (@customerName  IS NULL OR C.name LIKE CONCAT('%', @customerName, '%')) AND
+    (@dateFrom      IS NULL OR O.orderDate >= @dateFrom) AND
+    (@dateTo        IS NULL OR O.orderDate <  @dateTo)
+*/
 ORDER BY O.orderDate DESC, O.orderID DESC
 LIMIT @limit OFFSET @offset;
 
@@ -210,6 +230,7 @@ SET customerID = @customerID,
     total      = @total
 WHERE orderID = @orderID;
 
+-- Delete order (consider ON DELETE CASCADE on OrderItems)
 DELETE FROM Orders
 WHERE orderID = @orderID;
 
@@ -248,4 +269,36 @@ WHERE orderID = @orderID
 -- Delete all items for an order
 DELETE FROM OrderItems
 WHERE orderID = @orderID;
+
+
+/******************************************************************
+ * REPORTING / UTILITY SELECTS (handy for browse pages)
+ ******************************************************************/
+
+-- Inventory view (active/hidden)
+SELECT
+  L.listingID, L.status, L.quantityAvailable, L.type, L.price,
+  C.cardID, C.name AS cardName, C.setName, C.variant, C.year
+FROM Listings AS L
+JOIN Cards    AS C ON C.cardID = L.cardID
+WHERE L.status IN ('active', 'hidden')
+ORDER BY L.status, L.listingID;
+
+-- Sales summary per customer
+SELECT
+  O.customerID, C.name AS customerName,
+  COUNT(*) AS numOrders,
+  SUM(O.total) AS grossTotal
+FROM Orders AS O
+JOIN Customers AS C ON C.customerID = O.customerID
+GROUP BY O.customerID, C.name
+ORDER BY grossTotal DESC;
+
+-- Graded listings by company
+SELECT
+  GC.name AS companyName, COUNT(*) AS gradedCount, AVG(G.grade) AS avgGrade
+FROM GradeSlabs AS G
+JOIN GradingCompanies AS GC ON GC.companyID = G.companyID
+GROUP BY GC.companyID, GC.name
+ORDER BY gradedCount DESC;
 

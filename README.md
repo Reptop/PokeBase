@@ -1,60 +1,73 @@
-# PokeBase
-A Pokémon card database managment system. This repo ships browsable UI pages for your entities and CRUD forms (client-side only for now).
+# React + TypeScript + Vite
 
----
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+Currently, two official plugins are available:
 
-## Prerequisites
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-- **Node.js** ≥ 18  
-- **npm** ≥ 9
+## React Compiler
 
----
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Setup/Build Instructions
+## Expanding the ESLint configuration
 
-Install dependencies:
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-```bash
-cd PokeBase
-npm install
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
----
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-## Project Tree
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-```
-your-project/
-├─ package.json
-├─ tsconfig.json
-├─ vite.config.ts
-├─ postcss.config.js
-├─ tailwind.config.js
-├─ index.html
-├─ poke_base_dml_queries.sql            # ← canonical DML file to submit
-├─ public/
-│  └─ dml/
-│     └─ poke_base_dml_queries.sql      # optional public copy for viewing
-├─ src/
-│  ├─ main.tsx
-│  ├─ App.tsx
-│  ├─ index.css (or app.css)            # Tailwind entry (@import "tailwindcss")
-│  ├─ types.ts                          # Entity types
-│  ├─ lib/
-│  │  └─ api.mock.ts                    # in-memory data; swap to real API later
-│  ├─ components/
-│  │  ├─ Nav.tsx
-│  │  ├─ Table.tsx
-│  │  └─ FormField.tsx
-│  └─ pages/
-│     ├─ Index.tsx
-│     ├─ Customers.tsx
-│     ├─ Cards.tsx
-│     ├─ Listings.tsx
-│     ├─ GradingCompanies.tsx
-│     ├─ GradeSlab.tsx
-│     ├─ Orders.tsx
-│     └─ OrderItems.tsx
-└─ README.md
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
