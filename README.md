@@ -16,6 +16,7 @@ A Pokémon card database managment system. This repo ships browsable UI pages fo
 Install dependencies:
 
 ```bash
+cd PokeBase
 npm install
 ```
 
