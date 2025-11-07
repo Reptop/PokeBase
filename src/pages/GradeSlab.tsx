@@ -5,7 +5,7 @@ type Slab = Awaited<ReturnType<typeof api.getSlabForListing>>;
 
 export default function GradeSlab() {
   const [listingID, setListingID] = useState<number>(3);
-  const [slab, setSlab] = useState<Slab>(null);
+  const [slab, setSlab] = useState<Slab | null>(null);
 
   async function load() {
     const data = await api.getSlabForListing(Number(listingID));
@@ -14,19 +14,27 @@ export default function GradeSlab() {
   useEffect(() => { load(); }, [listingID]);
 
   return (
-    <section className="space-y-3">
-      <h1 className="text-2xl font-bold">Grade Slab (by Listing)</h1>
-      <div className="bg-white border rounded p-3 space-y-2">
-        <label className="block">
-          <div className="text-xs font-medium mb-1">Listing ID</div>
-          <input className="border rounded px-3 py-2" value={listingID}
-            onChange={e => setListingID(Number(e.target.value) || 0)} />
+    <section className="space-y-6">
+      <h1 className="section-title">Grade Slab (by Listing)</h1>
+
+      <div className="card space-y-3">
+        <label className="field">
+          <div className="field-label">Listing ID</div>
+          <input
+            className="input"
+            value={listingID}
+            onChange={e => setListingID(Number(e.target.value) || 0)}
+          />
         </label>
-        <button className="px-3 py-2 rounded bg-neutral-900 text-white" onClick={load}>Fetch</button>
+        <button className="btn btn-neutral" onClick={load}>Fetch</button>
       </div>
 
-      {!slab ? <p className="text-neutral-600">No slab found for listing #{listingID}.</p> : (
-        <div className="border rounded p-3 bg-white space-y-1">
+      {!slab ? (
+        <div className="card">
+          <p className="text-neutral-300">No slab found for listing #{listingID}.</p>
+        </div>
+      ) : (
+        <div className="card space-y-1">
           <p><b>slabID:</b> {slab.slabID}</p>
           <p><b>company:</b> {slab.company?.name} (scale {slab.company?.gradeScale})</p>
           <p><b>grade:</b> {slab.grade}</p>

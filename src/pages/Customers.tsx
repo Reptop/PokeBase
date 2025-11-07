@@ -22,8 +22,8 @@ export default function Customers() {
     {
       key: 'actions', header: 'Actions', render: (r: Customer) => (
         <div className="flex gap-2">
-          <button className="px-2 py-1 text-xs rounded bg-neutral-800 text-white" onClick={() => beginEdit(r)}>Edit</button>
-          <button className="px-2 py-1 text-xs rounded bg-red-600 text-white" onClick={() => onDelete(r.customerID)}>Delete</button>
+          <button className="btn btn-invert btn-xs" onClick={() => beginEdit(r)}>Edit</button>
+          <button className="btn btn-danger btn-xs" onClick={() => onDelete(r.customerID)}>Delete</button>
         </div>
       )
     }
@@ -65,50 +65,60 @@ export default function Customers() {
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       <header>
-        <h1 className="text-2xl font-bold">Customers</h1>
-        <p className="text-neutral-600">Browse, add, update, and delete customers (mock API).</p>
+        <h1 className="section-title">Customers</h1>
+        <p className="section-subtitle">Browse, add, update, and delete customers (mock API).</p>
       </header>
 
-      <form onSubmit={onSubmit} className="bg-white border rounded p-4 space-y-3">
-        <h2 className="font-semibold">{editing ? `Update Customer #${editing}` : 'Add New Customer'}</h2>
-        <div className="grid md:grid-cols-2 gap-3">
+      {/* Form */}
+      <form onSubmit={onSubmit} className="card space-y-3">
+        <h2 className="text-lg font-semibold text-neutral-100">
+          {editing ? `Update Customer #${editing}` : 'Add New Customer'}
+        </h2>
+        <div className="grid md:grid-cols-2 gap-4">
           <FormField label="Email">
             <input required type="email" value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              className="w-full border rounded px-3 py-2" />
+              className="input" />
           </FormField>
           <FormField label="Name">
             <input required type="text" value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              className="w-full border rounded px-3 py-2" />
+              className="input" />
           </FormField>
           <FormField label="Phone">
             <input required type="tel" value={form.phone}
               onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-              className="w-full border rounded px-3 py-2" />
+              className="input" />
           </FormField>
           <FormField label="Shipping Address">
             <input required type="text" value={form.shippingAddress}
               onChange={e => setForm(f => ({ ...f, shippingAddress: e.target.value }))}
-              className="w-full border rounded px-3 py-2" />
+              className="input" />
           </FormField>
           <FormField label="Total Orders">
             <input type="number" min={0} step={1} value={form.totalOrders}
               onChange={e => setForm(f => ({ ...f, totalOrders: Number(e.target.value) }))}
-              className="w-full border rounded px-3 py-2" />
+              className="input" />
           </FormField>
         </div>
         <div className="flex gap-2">
-          <button className="px-3 py-2 rounded bg-neutral-900 text-white">{editing ? 'Update' : 'Add'}</button>
-          {editing && <button type="button" onClick={resetForm} className="px-3 py-2 rounded border">Cancel</button>}
+          <button className="btn btn-neutral">{editing ? 'Update' : 'Add'}</button>
+          {editing && <button type="button" onClick={resetForm} className="btn btn-outline">Cancel</button>}
         </div>
       </form>
 
-      <div>
-        <h2 className="font-semibold mb-2">Browse Customers</h2>
-        {loading ? <p>Loading…</p> : <Table<Customer> keyField="customerID" columns={columns as any} rows={rows} />}
+      {/* Table */}
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold text-neutral-100">Browse Customers</h2>
+        {loading ? (
+          <div className="card"><p className="text-neutral-300">Loading…</p></div>
+        ) : (
+          <div className="card">
+            <Table<Customer> keyField="customerID" columns={columns as any} rows={rows} />
+          </div>
+        )}
       </div>
     </section>
   );

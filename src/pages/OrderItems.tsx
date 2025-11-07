@@ -10,26 +10,38 @@ export default function OrderItems() {
 
   const cols = useMemo(() => [
     { key: 'listingID', header: 'Listing' },
-    { key: 'quantity', header: 'Qty' },
-    { key: 'unitPrice', header: 'Unit Price' },
-    { key: 'listing', header: 'Listing Info', render: (r: Row) => r.listing ? `${r.listing.type} $${r.listing.price}` : '-' },
+    { key: 'quantity', header: 'Qty', className: 'text-right w-[80px]', render: (r: Row) => <span className="tabular-nums">{r.quantity}</span> },
+    { key: 'unitPrice', header: 'Unit Price', className: 'text-right w-[140px]', render: (r: Row) => <span className="tabular-nums">${r.unitPrice.toFixed(2)}</span> },
+    {
+      key: 'listing',
+      header: 'Listing Info',
+      render: (r: Row) =>
+        r.listing ? `${r.listing.type} • $${r.listing.price.toFixed(2)}` : '—',
+    },
   ], []);
 
   async function load() { setRows(await api.listOrderItems(orderID)); }
   useEffect(() => { load(); }, [orderID]);
 
   return (
-    <section className="space-y-3">
-      <h1 className="text-2xl font-bold">Order Items</h1>
-      <div className="bg-white border rounded p-3 space-y-2">
-        <label className="block">
-          <div className="text-xs font-medium mb-1">Order ID</div>
-          <input className="border rounded px-3 py-2" value={orderID}
-            onChange={e => setOrderID(Number(e.target.value) || 0)} />
+    <section className="space-y-6">
+      <h1 className="section-title">Order Items</h1>
+
+      <div className="card space-y-3">
+        <label className="field">
+          <div className="field-label">Order ID</div>
+          <input
+            className="input"
+            value={orderID}
+            onChange={e => setOrderID(Number(e.target.value) || 0)}
+          />
         </label>
-        <button onClick={load} className="px-3 py-2 rounded bg-neutral-900 text-white">Refresh</button>
+        <button onClick={load} className="btn btn-neutral">Refresh</button>
       </div>
-      <Table<Row> keyField="listingID" columns={cols as any} rows={rows} />
+
+      <div className="card">
+        <Table<Row> keyField="listingID" columns={cols as any} rows={rows} />
+      </div>
     </section>
   );
 }

@@ -17,9 +17,11 @@ export default function Cards() {
   useEffect(() => { api.listCards().then(setRows); }, []);
 
   return (
-    <section className="space-y-3">
-      <h1 className="text-2xl font-bold">Cards</h1>
-      <Table<Card> keyField="cardID" columns={cols as any} rows={rows} />
+    <section className="space-y-6">
+      <h1 className="section-title">Cards</h1>
+      <div className="card">
+        <Table<Card> keyField="cardID" columns={cols as any} rows={rows} />
+      </div>
     </section>
   );
 }

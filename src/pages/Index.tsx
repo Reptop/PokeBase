@@ -10,22 +10,24 @@ export default function Index() {
   ];
 
   return (
-    <section>
-      <h1 className="text-2xl font-bold mb-3">Project Index</h1>
+    <section className="space-y-6">
+      <h1 className="section-title">Project Index</h1>
 
-      <p className="text-neutral-600 mb-4">
+      <p className="section-subtitle">
         Front-end pages for CS340 CRUD. We used minimal backend for routing only :)
       </p>
 
-      <p className="text-neutral-600 mb-4">
-        This page was created using Vite + React + TailWindCSS (wow!)
+      <p className="section-subtitle">
+        Built with Vite + React + Tailwind CSS.
       </p>
 
-      <ul className="grid md:grid-cols-2 gap-3">
-        {pages.map(p => (
-          <li key={p.href} className="border rounded p-3 bg-white">
-            <a href={p.href} className="text-lg font-semibold hover:underline">{p.title}</a>
-            <p className="text-sm text-neutral-600">{p.desc}</p>
+      <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {pages.map((p) => (
+          <li key={p.href} className="card">
+            <a href={p.href} className="block">
+              <h3 className="text-lg font-semibold text-neutral-100 hover:underline">{p.title}</h3>
+              <p className="mt-1 text-sm text-neutral-400">{p.desc}</p>
+            </a>
           </li>
         ))}
       </ul>

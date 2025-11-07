@@ -15,8 +15,7 @@ CREATE TABLE Customers (
     email VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(200) NOT NULL,
     phone VARCHAR(32) NOT NULL,
-    shippingAddress VARCHAR(255) NOT NULL,
-    totalOrders INT NOT NULL DEFAULT 0 
+    shippingAddress VARCHAR(255) NOT NULL
 );
 
 -- Cards no fk
@@ -48,6 +47,8 @@ CREATE TABLE Listings (
     quantityAvailable INT NOT NULL DEFAULT 1,
     status ENUM('active', 'sold_out', 'hidden') NOT NULL DEFAULT 'active',
     FOREIGN KEY (cardID) REFERENCES Cards(cardID)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 
@@ -58,6 +59,8 @@ CREATE TABLE GradeSlabs (
     grade DECIMAL(3, 1) NOT NULL,
     FOREIGN KEY (slabID) REFERENCES Listings(listingID), 
     FOREIGN KEY (companyID) REFERENCES GradingCompanies(companyID)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 -- Orders fk for customerID
@@ -70,7 +73,10 @@ CREATE TABLE Orders (
     tax DECIMAL(10, 2) NOT NULL,
     total DECIMAL(10, 2) NOT NULL,
     FOREIGN KEY (customerID) REFERENCES Customers(customerID)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
+
 
 -- OrderItems composite key using fk (orderID and listingID)
 CREATE TABLE OrderItems (
@@ -81,14 +87,16 @@ CREATE TABLE OrderItems (
     PRIMARY KEY (orderID, listingID),
     FOREIGN KEY (orderID) REFERENCES Orders(orderID),
     FOREIGN KEY (listingID) REFERENCES Listings(listingID)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
 );
 
 
-INSERT INTO Customers (email, name, phone, shippingAddress, totalOrders)
+INSERT INTO Customers (email, name, phone, shippingAddress)
 VALUES
-('benardo@example.com', 'Bernardo Mendes', '541-555-0101', '33 Pallet Town, Kanto', 2),
-('misty@example.com', 'Misty', '541-555-0102', '44 Cerulean Gym, Kanto', 1),
-('brock.s@example.com', 'Brock Harrison', '541-555-0103', '77 Pewter City, Kanto', 1);
+('benardo@example.com', 'Bernardo Mendes', '541-555-0101', '33 Pallet Town, Kanto'),
+('misty@example.com', 'Misty', '541-555-0102', '44 Cerulean Gym, Kanto'),
+('brock.s@example.com', 'Brock Harrison', '541-555-0103', '77 Pewter City, Kanto');
 
 INSERT INTO Cards (setName, cardNumber, name, variant, year)
 VALUES
@@ -132,4 +140,3 @@ VALUES
 (1004, 1, 1, 149.99);
 
 COMMIT;
-

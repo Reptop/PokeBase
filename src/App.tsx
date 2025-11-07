@@ -14,7 +14,7 @@ import './App.css';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-neutral-50 text-neutral-900">
+    <div className="min-h-screen bg-neutral-900 text-neutral-100">
       <Nav />
       <main className="max-w-5xl mx-auto p-4">
         <Routes>

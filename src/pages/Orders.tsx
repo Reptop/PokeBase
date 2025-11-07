@@ -16,7 +16,7 @@ export default function Orders() {
   useEffect(() => { api.listOrders().then(setRows); }, []);
   return (
     <section className="space-y-3">
-      <h1 className="text-2xl font-bold">Orders</h1>
+      <h1 className="section-title">Orders</h1>
       <Table<Row> keyField="orderID" columns={cols as any} rows={rows} />
     </section>
   );
