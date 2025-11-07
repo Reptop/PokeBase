@@ -5,7 +5,9 @@
   color-scheme: light;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
@@ -28,8 +30,14 @@ body {
 }
 
 /* Hide scrollbars where desired for mobile navigation */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 
 /* Reusable components through @apply */
 
@@ -63,18 +71,34 @@ body {
   @apply bg-red-600 text-white hover:bg-red-700;
 }
 
-.btn-xs { @apply px-2 py-1 text-xs; }
-.btn-sm { @apply px-3 py-1.5 text-sm; }
-.btn-icon { @apply p-2 rounded-md; }
+.btn-xs {
+  @apply px-2 py-1 text-xs;
+}
+
+.btn-sm {
+  @apply px-3 py-1.5 text-sm;
+}
+
+.btn-icon {
+  @apply p-2 rounded-md;
+}
 
 /* Badges */
 .badge {
   @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
 }
 
-.badge-muted { @apply bg-neutral-100 text-neutral-700; }
-.badge-green { @apply bg-emerald-100 text-emerald-800; }
-.badge-amber { @apply bg-amber-100 text-amber-800; }
+.badge-muted {
+  @apply bg-neutral-100 text-neutral-700;
+}
+
+.badge-green {
+  @apply bg-emerald-100 text-emerald-800;
+}
+
+.badge-amber {
+  @apply bg-amber-100 text-amber-800;
+}
 
 /* Navbar helpers (your Nav.tsx still sets most classes inline) */
 .navbar {
@@ -92,6 +116,7 @@ body {
 .nav-pills {
   @apply flex gap-1;
 }
+
 .nav-link {
   @apply inline-flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap transition-colors text-neutral-700 hover:bg-neutral-100;
 }
@@ -128,6 +153,7 @@ body {
 .table tbody tr:hover {
   @apply bg-neutral-100/70;
 }
+
 .table-empty {
   @apply px-4 py-6 text-center text-neutral-500;
 }
@@ -141,11 +167,15 @@ body {
   @apply block text-xs font-medium text-neutral-700 mb-1;
 }
 
-.input, .select, .textarea {
+.input,
+.select,
+.textarea {
   @apply w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-neutral-300;
 }
 
-.textarea { @apply min-h-[120px]; }
+.textarea {
+  @apply min-h-[120px];
+}
 
 /* Utility spacing for page layout */
 .page {
@@ -166,17 +196,32 @@ body {
   will-change: filter;
   transition: filter 200ms ease;
 }
-.logo:hover { filter: drop-shadow(0 0 1.25rem #646cff55); }
-.logo.react:hover { filter: drop-shadow(0 0 1.25rem #61dafb55); }
+
+.logo:hover {
+  filter: drop-shadow(0 0 1.25rem #646cff55);
+}
+
+.logo.react:hover {
+  filter: drop-shadow(0 0 1.25rem #61dafb55);
+}
 
 @keyframes logo-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
+
 @media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo { animation: logo-spin infinite 16s linear; }
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 16s linear;
+  }
 }
 
 /* Text helpers */
-.read-the-docs { @apply text-neutral-500; }
-
+.read-the-docs {
+  @apply text-neutral-500;
+}
