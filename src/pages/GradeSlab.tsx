@@ -33,6 +33,7 @@ export default function GradeSlab() {
         <div className="card">
           <p className="text-neutral-300">No slab found for listing #{listingID}.</p>
         </div>
+
       ) : (
         <div className="card space-y-1">
           <p><b>slabID:</b> {slab.slabID}</p>

@@ -18,7 +18,7 @@ export default function Index() {
       </p>
 
       <p className="section-subtitle">
-        Built with Vite + React + Tailwind CSS.
+        Built with Vite + React + Tailwind CSS (wow!)
       </p>
 
       <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
