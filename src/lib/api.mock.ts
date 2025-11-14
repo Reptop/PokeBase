@@ -210,6 +210,30 @@ export const api = {
     }));
   },
 
+  async createOrder(payload: Omit<Order, 'orderID'>): Promise<{ orderID: number }> {
+    await sleep();
+    const orderID = nextId(); // e.g. 2001, 2002, ...
+    db.orders.push({ orderID, ...payload });
+    return { orderID };
+  },
+
+  async updateOrder(orderID: number, patch: Partial<Order>): Promise<void> {
+    await sleep();
+    const i = db.orders.findIndex(o => o.orderID === orderID);
+    if (i >= 0) {
+      db.orders[i] = { ...db.orders[i], ...patch };
+    }
+  },
+
+  async deleteOrder(orderID: number): Promise<void> {
+    await sleep();
+    // remove order
+    db.orders = db.orders.filter(o => o.orderID !== orderID);
+    // also remove its join rows
+    db.orderItems = db.orderItems.filter(oi => oi.orderID !== orderID);
+  },
+
+
   // Create or update a slab for this listing (1:1 via shared key)
   async upsertGradeSlabForListing(
     listingID: number,

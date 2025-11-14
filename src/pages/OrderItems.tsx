@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import Table from '../components/Table';
 import { api } from '../lib/api.mock';
-import type { Listing, OrderItem } from '../types';
+import type { OrderItem } from '../types';
 
 type Row = Awaited<ReturnType<typeof api.listOrderItems>>[number];
 type ListingRow = Awaited<ReturnType<typeof api.listListings>>[number];
+type OrderRow = Awaited<ReturnType<typeof api.listOrders>>[number];
 
 type FormState = {
   listingID: number | '';
@@ -13,8 +14,11 @@ type FormState = {
 };
 
 export default function OrderItems() {
-  const [orderID, setOrderID] = useState<number>(1001);
-  const [rows, setRows] = useState<Row[]>([]);
+
+  // These useStates hook together and manage all data for this page
+  const [orderID, setOrderID] = useState<number | ''>('');        // currently selected order
+  const [orders, setOrders] = useState<OrderRow[]>([]);           // all orders
+  const [rows, setRows] = useState<Row[]>([]);                    // order items for current order
   const [allListings, setAllListings] = useState<ListingRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingListingID, setEditingListingID] = useState<number | null>(null);
@@ -48,9 +52,7 @@ export default function OrderItems() {
         key: 'listing',
         header: 'Listing Info',
         render: (r: Row) =>
-          r.listing
-            ? `${r.listing.type} • $${r.listing.price.toFixed(2)}`
-            : '—',
+          r.listing ? `${r.listing.type} • $${r.listing.price.toFixed(2)}` : '—',
       },
       {
         key: 'actions',
@@ -78,9 +80,11 @@ export default function OrderItems() {
     []
   );
 
-  async function loadOrderItems() {
+  // --- Data loaders -------------------------------------------------------
+
+  async function loadOrderItems(currentOrderID: number) {
     setLoading(true);
-    const items = await api.listOrderItems(orderID);
+    const items = await api.listOrderItems(currentOrderID);
     setRows(items);
     setLoading(false);
   }
@@ -90,15 +94,50 @@ export default function OrderItems() {
     setAllListings(listings);
   }
 
-  // Fetch listings once
+  async function loadOrders() {
+    const list = await api.listOrders();
+    setOrders(list);
+
+    // If no order is selected yet, or the selected one no longer exists,
+    // default to the latest order (last in the array).
+    if (list.length > 0) {
+      const exists = orderID && list.some(o => o.orderID === orderID);
+      if (!exists) {
+        const latest = list[list.length - 1];
+        setOrderID(latest.orderID);
+        await loadOrderItems(latest.orderID);
+        return;
+      }
+    }
+
+    // If we already have a valid selected order, just reload its items
+    if (orderID && list.some(o => o.orderID === orderID)) {
+      await loadOrderItems(orderID);
+    } else {
+      setRows([]);
+      setLoading(false);
+    }
+  }
+
+  // On mount: load orders & listings
   useEffect(() => {
-    loadListings();
+    (async () => {
+      await loadListings();
+      await loadOrders();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reload order items when orderID changes
+  // When orderID changes (via dropdown), load that order's items
   useEffect(() => {
-    loadOrderItems();
+    if (orderID) {
+      loadOrderItems(orderID);
+    } else {
+      setRows([]);
+    }
   }, [orderID]);
+
+  // --- Form helpers -------------------------------------------------------
 
   function resetForm() {
     setEditingListingID(null);
@@ -119,10 +158,32 @@ export default function OrderItems() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function handleListingChange(value: string) {
+    setForm(prev => {
+      const listingID = value === '' ? '' : Number(value);
+      let unitPrice = prev.unitPrice;
+
+      // Autofill unitPrice from listing.price if it's empty/zero
+      if (value !== '' && (unitPrice === '' || Number(unitPrice) === 0)) {
+        const listing = allListings.find(l => l.listingID === listingID);
+        if (listing) {
+          unitPrice = listing.price;
+        }
+      }
+
+      return { ...prev, listingID, unitPrice };
+    });
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!orderID || form.listingID === '' || form.quantity === '' || form.unitPrice === '') {
+    if (
+      !orderID ||
+      form.listingID === '' ||
+      form.quantity === '' ||
+      form.unitPrice === ''
+    ) {
       return;
     }
 
@@ -134,43 +195,29 @@ export default function OrderItems() {
     };
 
     if (editingListingID !== null) {
-      // Update existing join row (orderID + listingID PK)
       await api.updateOrderItem(orderID, editingListingID, payload);
     }
 
     else {
-      // Insert new join row
       await api.createOrderItem(payload);
     }
 
     resetForm();
-    await loadOrderItems();
+    await loadOrderItems(orderID);
   }
 
   async function onDelete(listingID: number) {
+    if (!orderID)
+      return;
+
     if (!confirm(`Remove listing #${listingID} from order #${orderID}?`))
       return;
 
     await api.deleteOrderItem(orderID, listingID);
-    await loadOrderItems();
+    await loadOrderItems(orderID);
   }
 
-  function handleListingChange(value: string) {
-    const listingID = value === '' ? '' : Number(value);
-    setForm(f => ({ ...f, listingID }));
-
-    // When selecting a listing for the first time, auto-fill unitPrice from listing.price
-    if (value !== '' && fIsEmptyOrZero(form.unitPrice)) {
-      const selected = allListings.find(l => l.listingID === Number(value));
-      if (selected) {
-        setForm(f => ({ ...f, unitPrice: selected.price }));
-      }
-    }
-  }
-
-  function fIsEmptyOrZero(v: number | '') {
-    return v === '' || Number(v) === 0;
-  }
+  // --- JSX ---------------------------------------------------------------
 
   return (
     <section className="space-y-6">
@@ -179,26 +226,35 @@ export default function OrderItems() {
       {/* Order selector */}
       <div className="card space-y-3">
         <label className="field">
-          <div className="field-label">Order ID</div>
-          <input
+          <div className="field-label">Order</div>
+          <select
             className="input"
             value={orderID}
-            onChange={e => setOrderID(Number(e.target.value) || 0)}
-          />
+            onChange={e =>
+              setOrderID(e.target.value === '' ? '' : Number(e.target.value))
+            }
+          >
+            {orders.length === 0 && <option value="">No orders yet</option>}
+            {orders.map(o => (
+              <option key={o.orderID} value={o.orderID}>
+                #{o.orderID} – {o.customer ? o.customer.name : `Customer ${o.customerID}`} – {o.status}
+              </option>
+            ))}
+          </select>
         </label>
-
-        <button onClick={loadOrderItems} className="btn btn-neutral">
-          Refresh
+        <button onClick={loadOrders} className="btn btn-neutral">
+          Reload Orders
         </button>
-
       </div>
 
-      {/* Form: Add / Edit join table row */}
+      {/* Join-table CRUD form */}
       <form onSubmit={onSubmit} className="card space-y-3">
         <h2 className="text-lg font-semibold text-neutral-100">
-          {editingListingID !== null
+          {editingListingID !== null && orderID
             ? `Update Item for Order #${orderID}`
-            : `Add Item to Order #${orderID}`}
+            : orderID
+              ? `Add Item to Order #${orderID}`
+              : 'Select an order to edit items'}
         </h2>
 
         <div className="grid md:grid-cols-3 gap-4">
@@ -209,7 +265,7 @@ export default function OrderItems() {
               className="input"
               value={form.listingID}
               onChange={e => handleListingChange(e.target.value)}
-              disabled={editingListingID !== null} // keep PK stable while editing
+              disabled={editingListingID !== null || !orderID}
             >
               <option value="">Select listing…</option>
               {allListings.map(l => (
@@ -237,10 +293,11 @@ export default function OrderItems() {
                     e.target.value === '' ? '' : Number(e.target.value),
                 }))
               }
+              disabled={!orderID}
             />
           </label>
 
-          {/* Unit price (copy from listing or override) */}
+          {/* Unit price */}
           <label className="field">
             <div className="field-label">Unit Price</div>
             <input
@@ -256,12 +313,13 @@ export default function OrderItems() {
                     e.target.value === '' ? '' : Number(e.target.value),
                 }))
               }
+              disabled={!orderID}
             />
           </label>
         </div>
 
         <div className="flex gap-2">
-          <button className="btn btn-neutral">
+          <button className="btn btn-neutral" disabled={!orderID}>
             {editingListingID !== null ? 'Update Item' : 'Add Item'}
           </button>
           {editingListingID !== null && (
