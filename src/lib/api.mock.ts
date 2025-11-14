@@ -9,12 +9,14 @@ const db = {
     { customerID: 2, email: 'misty@example.com', name: 'Misty', phone: '541-555-0102', shippingAddress: '44 Cerulean Gym, Kanto', totalOrders: 1 },
     { customerID: 3, email: 'brock.s@example.com', name: 'Brock Harrison', phone: '541-555-0103', shippingAddress: '77 Pewter City, Kanto', totalOrders: 1 },
   ] as Customer[],
+
   cards: [
     { cardID: 1, setName: 'Base Set', cardNumber: '4/102', name: 'Charizard', variant: 'Standard', year: 1999 },
     { cardID: 2, setName: 'Neo Genesis', cardNumber: '60/64', name: 'Pikachu', variant: 'Standard', year: 1999 },
     { cardID: 3, setName: 'Evolving Skies', cardNumber: '215/203', name: 'Rayquaza VMAX', variant: 'FullArt', year: 2021 },
     { cardID: 4, setName: 'Promo', cardNumber: 'SWSH150', name: 'Umbreon', variant: 'Promo', year: 2022 },
   ] as Card[],
+
   listings: [
     { listingID: 1, cardID: 1, price: 149.99, type: 'raw', cardCondition: 'NM', quantityAvailable: 2, status: 'active' },
     { listingID: 2, cardID: 2, price: 12.50, type: 'raw', cardCondition: 'LP', quantityAvailable: 5, status: 'active' },
@@ -22,24 +24,29 @@ const db = {
     { listingID: 4, cardID: 3, price: 340.00, type: 'graded', cardCondition: null, quantityAvailable: 1, status: 'active' },
     { listingID: 5, cardID: 4, price: 24.99, type: 'raw', cardCondition: 'NM', quantityAvailable: 3, status: 'hidden' },
   ] as Listing[],
+
   gradingCompanies: [
     { companyID: 1, name: 'PSA', gradeScale: '10', url: 'https://www.psacard.com' },
     { companyID: 2, name: 'BGS', gradeScale: '10', url: 'https://www.beckett.com/grading' },
     { companyID: 3, name: 'CGC', gradeScale: '100', url: 'https://www.cgccards.com' },
   ] as GradingCompany[],
+
   gradeSlabs: [
     { slabID: 3, companyID: 1, grade: 9.0 },
     { slabID: 4, companyID: 2, grade: 9.5 },
   ] as GradeSlab[],
+
   orders: [
     { orderID: 1001, customerID: 1, orderDate: '2025-10-30 10:15:00', status: 'paid', subtotal: 438.99, tax: 0.00, total: 438.99 },
     { orderID: 1002, customerID: 2, orderDate: '2025-10-30 11:02:00', status: 'pending', subtotal: 12.50, tax: 0.00, total: 12.50 },
   ] as Order[],
+
   orderItems: [
     { orderID: 1001, listingID: 1, quantity: 1, unitPrice: 149.99 },
     { orderID: 1001, listingID: 3, quantity: 1, unitPrice: 289.00 },
     { orderID: 1002, listingID: 2, quantity: 1, unitPrice: 12.50 },
   ] as OrderItem[],
+
 };
 
 const sleep = (ms = 200) => new Promise(res => setTimeout(res, ms));
@@ -64,7 +71,43 @@ export const api = {
   async deleteCustomer(customerID: number): Promise<void> {
     await sleep();
     db.customers = db.customers.filter(c => c.customerID !== customerID);
-    // (You could also clean up orders for that customer here if you wanted)
+  },
+
+  // Listings (+ joined card)
+  async listListings(): Promise<(Listing & { card: Card | null })[]> {
+    await sleep();
+    return db.listings.map(l => ({
+      ...l,
+      card: db.cards.find(c => c.cardID === l.cardID) ?? null,
+    }));
+  },
+
+  async createListing(payload: Omit<Listing, 'listingID'>): Promise<{ listingID: number }> {
+    await sleep();
+    const listingID = nextId();
+    db.listings.push({ listingID, ...payload });
+    return { listingID };
+  },
+
+  async updateListing(listingID: number, patch: Partial<Listing>): Promise<void> {
+    await sleep();
+    const i = db.listings.findIndex(l => l.listingID === listingID);
+    if (i >= 0) {
+      db.listings[i] = { ...db.listings[i], ...patch };
+    }
+  },
+
+  async deleteListing(listingID: number): Promise<void> {
+    await sleep();
+
+    // Remove the listing itself
+    db.listings = db.listings.filter(l => l.listingID !== listingID);
+
+    // Remove grade slab tied to this listing (slabID = listingID)
+    db.gradeSlabs = db.gradeSlabs.filter(gs => gs.slabID !== listingID);
+
+    // Remove orderItems rows that reference this listing (M:N join cleanup)
+    db.orderItems = db.orderItems.filter(oi => oi.listingID !== listingID);
   },
 
   // Cards
@@ -108,15 +151,6 @@ export const api = {
     db.orderItems = db.orderItems.filter(oi => !removedListingIDs.includes(oi.listingID));
   },
 
-  // Listings (+ joined card)
-  async listListings(): Promise<(Listing & { card: Card | null })[]> {
-    await sleep();
-    return db.listings.map(l => ({
-      ...l,
-      card: db.cards.find(c => c.cardID === l.cardID) ?? null,
-    }));
-  },
-
   // Grading Companies
   async listGradingCompanies(): Promise<GradingCompany[]> {
     await sleep();
@@ -139,6 +173,25 @@ export const api = {
       ...o,
       customer: db.customers.find(c => c.customerID === o.customerID) ?? null,
     }));
+  },
+
+  // Create or update a slab for this listing (1:1 via shared key)
+  async upsertGradeSlabForListing(
+    listingID: number,
+    payload: { companyID: number; grade: number }
+  ): Promise<void> {
+    await sleep();
+    const idx = db.gradeSlabs.findIndex(gs => gs.slabID === listingID);
+    if (idx >= 0) {
+      db.gradeSlabs[idx] = { slabID: listingID, ...payload };
+    } else {
+      db.gradeSlabs.push({ slabID: listingID, ...payload });
+    }
+  },
+
+  async deleteGradeSlabForListing(listingID: number): Promise<void> {
+    await sleep();
+    db.gradeSlabs = db.gradeSlabs.filter(gs => gs.slabID !== listingID);
   },
 
   // Order items (+ joined listing)
