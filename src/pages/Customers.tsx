@@ -35,6 +35,7 @@ export default function Customers() {
     setRows(data);
     setLoading(false);
   }
+
   useEffect(() => { refresh(); }, []);
 
   function beginEdit(c: Customer) {
@@ -42,6 +43,7 @@ export default function Customers() {
     setForm({ email: c.email, name: c.name, phone: c.phone, shippingAddress: c.shippingAddress, totalOrders: c.totalOrders });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
   function resetForm() {
     setEditing(null);
     setForm({ email: '', name: '', phone: '', shippingAddress: '', totalOrders: 0 });
@@ -49,18 +51,25 @@ export default function Customers() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+
     if (editing) {
       await api.updateCustomer(editing, { ...form, totalOrders: Number(form.totalOrders) || 0 });
-    } else {
+    }
+
+    else {
       await api.createCustomer({ ...form, totalOrders: Number(form.totalOrders) || 0 });
     }
+
     resetForm();
     refresh();
   }
 
   async function onDelete(customerID: number) {
-    if (!confirm(`Delete customer #${customerID}?`)) return;
+    if (!confirm(`Delete customer #${customerID}?`))
+      return;
+
     await api.deleteCustomer(customerID);
+
     refresh();
   }
 
@@ -76,37 +85,45 @@ export default function Customers() {
         <h2 className="text-lg font-semibold text-neutral-100">
           {editing ? `Update Customer #${editing}` : 'Add New Customer'}
         </h2>
+
         <div className="grid md:grid-cols-2 gap-4">
           <FormField label="Email">
             <input required type="email" value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               className="input" />
           </FormField>
+
           <FormField label="Name">
             <input required type="text" value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               className="input" />
           </FormField>
+
           <FormField label="Phone">
             <input required type="tel" value={form.phone}
               onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
               className="input" />
           </FormField>
+
           <FormField label="Shipping Address">
             <input required type="text" value={form.shippingAddress}
               onChange={e => setForm(f => ({ ...f, shippingAddress: e.target.value }))}
               className="input" />
           </FormField>
+
           <FormField label="Total Orders">
             <input type="number" min={0} step={1} value={form.totalOrders}
               onChange={e => setForm(f => ({ ...f, totalOrders: Number(e.target.value) }))}
               className="input" />
           </FormField>
+
         </div>
+
         <div className="flex gap-2">
           <button className="btn btn-neutral">{editing ? 'Update' : 'Add'}</button>
           {editing && <button type="button" onClick={resetForm} className="btn btn-outline">Cancel</button>}
         </div>
+
       </form>
 
       {/* Table */}

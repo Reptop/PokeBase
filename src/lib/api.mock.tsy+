@@ -46,82 +46,28 @@ const sleep = (ms = 200) => new Promise(res => setTimeout(res, ms));
 
 export const api = {
   // Customers
-  async listCustomers(): Promise<Customer[]> {
-    await sleep();
-    return [...db.customers];
-  },
+  async listCustomers(): Promise<Customer[]> { await sleep(); return [...db.customers]; },
   async createCustomer(payload: Omit<Customer, 'customerID'>): Promise<{ customerID: number }> {
-    await sleep();
-    const customerID = nextId();
-    db.customers.push({ customerID, ...payload });
-    return { customerID };
+    await sleep(); const customerID = nextId(); db.customers.push({ customerID, ...payload }); return { customerID };
   },
   async updateCustomer(customerID: number, patch: Partial<Customer>): Promise<void> {
-    await sleep();
-    const i = db.customers.findIndex(c => c.customerID === customerID);
-    if (i >= 0) db.customers[i] = { ...db.customers[i], ...patch };
+    await sleep(); const i = db.customers.findIndex(c => c.customerID === customerID); if (i >= 0) db.customers[i] = { ...db.customers[i], ...patch };
   },
   async deleteCustomer(customerID: number): Promise<void> {
-    await sleep();
-    db.customers = db.customers.filter(c => c.customerID !== customerID);
-    // (You could also clean up orders for that customer here if you wanted)
+    await sleep(); db.customers = db.customers.filter(c => c.customerID !== customerID);
   },
 
   // Cards
-  async listCards(): Promise<Card[]> {
-    await sleep();
-    return [...db.cards];
-  },
-  async createCard(payload: Omit<Card, 'cardID'>): Promise<{ cardID: number }> {
-    await sleep();
-    const cardID = nextId();
-    db.cards.push({ cardID, ...payload });
-    return { cardID };
-  },
-  async updateCard(cardID: number, patch: Partial<Card>): Promise<void> {
-    await sleep();
-    const i = db.cards.findIndex(c => c.cardID === cardID);
-    if (i >= 0) {
-      db.cards[i] = { ...db.cards[i], ...patch };
-    }
-  },
-  async deleteCard(cardID: number): Promise<void> {
-    await sleep();
-
-    // Remove the card itself
-    db.cards = db.cards.filter(c => c.cardID !== cardID);
-
-    // Optional: mimic ON DELETE CASCADE for related data
-
-    // 1) Find listings for this card
-    const removedListingIDs = db.listings
-      .filter(l => l.cardID === cardID)
-      .map(l => l.listingID);
-
-    // 2) Remove those listings
-    db.listings = db.listings.filter(l => l.cardID !== cardID);
-
-    // 3) Remove grade slabs tied to those listings (slabID = listingID)
-    db.gradeSlabs = db.gradeSlabs.filter(gs => !removedListingIDs.includes(gs.slabID));
-
-    // 4) Remove orderItems for those listings
-    db.orderItems = db.orderItems.filter(oi => !removedListingIDs.includes(oi.listingID));
-  },
+  async listCards(): Promise<Card[]> { await sleep(); return [...db.cards]; },
 
   // Listings (+ joined card)
   async listListings(): Promise<(Listing & { card: Card | null })[]> {
     await sleep();
-    return db.listings.map(l => ({
-      ...l,
-      card: db.cards.find(c => c.cardID === l.cardID) ?? null,
-    }));
+    return db.listings.map(l => ({ ...l, card: db.cards.find(c => c.cardID === l.cardID) ?? null }));
   },
 
   // Grading Companies
-  async listGradingCompanies(): Promise<GradingCompany[]> {
-    await sleep();
-    return [...db.gradingCompanies];
-  },
+  async listGradingCompanies(): Promise<GradingCompany[]> { await sleep(); return [...db.gradingCompanies]; },
 
   // Grade slab by listing
   async getSlabForListing(listingID: number): Promise<(GradeSlab & { company: GradingCompany | null }) | null> {
@@ -135,10 +81,7 @@ export const api = {
   // Orders (+ joined customer)
   async listOrders(): Promise<(Order & { customer: Customer | null })[]> {
     await sleep();
-    return db.orders.map(o => ({
-      ...o,
-      customer: db.customers.find(c => c.customerID === o.customerID) ?? null,
-    }));
+    return db.orders.map(o => ({ ...o, customer: db.customers.find(c => c.customerID === o.customerID) ?? null }));
   },
 
   // Order items (+ joined listing)
@@ -146,10 +89,6 @@ export const api = {
     await sleep();
     return db.orderItems
       .filter(oi => oi.orderID === orderID)
-      .map(oi => ({
-        ...oi,
-        listing: db.listings.find(l => l.listingID === oi.listingID) ?? null,
-      }));
+      .map(oi => ({ ...oi, listing: db.listings.find(l => l.listingID === oi.listingID) ?? null }));
   },
 };
-
