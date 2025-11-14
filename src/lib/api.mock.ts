@@ -51,23 +51,49 @@ const db = {
 
 const sleep = (ms = 200) => new Promise(res => setTimeout(res, ms));
 
+// This will be called after order item changes
+function recomputeOrderTotals(orderID: number) {
+  const order = db.orders.find(o => o.orderID === orderID);
+  if (!order) return;
+
+  const items = db.orderItems.filter(oi => oi.orderID === orderID);
+
+  const subtotal = items.reduce(
+    (sum, oi) => sum + oi.unitPrice * oi.quantity,
+    0
+  );
+
+  // In your seed data tax is 0.00; you can keep that or apply a rate.
+  const tax = 0; // or e.g. subtotal * 0.08
+
+  // helper to round to 2 decimals
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+
+  order.subtotal = round2(subtotal);
+  order.tax = round2(tax);
+  order.total = round2(order.subtotal + order.tax);
+}
+
 export const api = {
   // Customers
   async listCustomers(): Promise<Customer[]> {
     await sleep();
     return [...db.customers];
   },
+
   async createCustomer(payload: Omit<Customer, 'customerID'>): Promise<{ customerID: number }> {
     await sleep();
     const customerID = nextId();
     db.customers.push({ customerID, ...payload });
     return { customerID };
-  },
+  }
+  ,
   async updateCustomer(customerID: number, patch: Partial<Customer>): Promise<void> {
     await sleep();
     const i = db.customers.findIndex(c => c.customerID === customerID);
     if (i >= 0) db.customers[i] = { ...db.customers[i], ...patch };
   },
+
   async deleteCustomer(customerID: number): Promise<void> {
     await sleep();
     db.customers = db.customers.filter(c => c.customerID !== customerID);
@@ -192,6 +218,50 @@ export const api = {
   async deleteGradeSlabForListing(listingID: number): Promise<void> {
     await sleep();
     db.gradeSlabs = db.gradeSlabs.filter(gs => gs.slabID !== listingID);
+  },
+
+  // --- OrderItems CRUD --- 
+
+  async createOrderItem(payload: OrderItem): Promise<void> {
+    await sleep();
+    const existing = db.orderItems.find(
+      oi => oi.orderID === payload.orderID && oi.listingID === payload.listingID,
+    );
+
+    if (existing) {
+      existing.quantity = payload.quantity;
+      existing.unitPrice = payload.unitPrice;
+    } else {
+      db.orderItems.push({ ...payload });
+    }
+
+    recomputeOrderTotals(payload.orderID);
+  },
+
+  async updateOrderItem(
+    orderID: number,
+    listingID: number,
+    patch: Partial<OrderItem>,
+  ): Promise<void> {
+    await sleep();
+    const i = db.orderItems.findIndex(
+      oi => oi.orderID === orderID && oi.listingID === listingID,
+    );
+
+    if (i >= 0) {
+      db.orderItems[i] = { ...db.orderItems[i], ...patch };
+    }
+
+    recomputeOrderTotals(orderID);
+  },
+
+  async deleteOrderItem(orderID: number, listingID: number): Promise<void> {
+    await sleep();
+    db.orderItems = db.orderItems.filter(
+      oi => !(oi.orderID === orderID && oi.listingID === listingID),
+    );
+
+    recomputeOrderTotals(orderID);
   },
 
   // Order items (+ joined listing)
