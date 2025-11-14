@@ -183,6 +183,15 @@ export const api = {
     return [...db.gradingCompanies];
   },
 
+  async listGradeSlabs(): Promise<(GradeSlab & { company: GradingCompany | null })[]> {
+    await sleep();
+    return db.gradeSlabs.map(slab => {
+      const company =
+        db.gradingCompanies.find(gc => gc.companyID === slab.companyID) ?? null;
+      return { ...slab, company };
+    });
+  },
+
   // Grade slab by listing
   async getSlabForListing(listingID: number): Promise<(GradeSlab & { company: GradingCompany | null }) | null> {
     await sleep();
@@ -275,4 +284,3 @@ export const api = {
       }));
   },
 };
-

@@ -1,17 +1,30 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.mock';
+import type { GradeSlab as GradeSlabType, GradingCompany } from '../types';
 
-type Slab = Awaited<ReturnType<typeof api.getSlabForListing>>;
+type SlabDetail = GradeSlabType & { company: GradingCompany | null };
 
 export default function GradeSlab() {
-  const [listingID, setListingID] = useState<number>(3);
-  const [slab, setSlab] = useState<Slab | null>(null);
+  const [listingID, setListingID] = useState<number | ''>(3);
+  const [slab, setSlab] = useState<SlabDetail | null>(null);
+  const [allSlabs, setAllSlabs] = useState<SlabDetail[]>([]);
 
   async function load() {
+    if (listingID === '') {
+      setSlab(null);
+      return;
+    }
     const data = await api.getSlabForListing(Number(listingID));
     setSlab(data);
   }
-  useEffect(() => { load(); }, [listingID]);
+
+  useEffect(() => {
+    api.listGradeSlabs().then(setAllSlabs);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [listingID]);
 
   return (
     <section className="space-y-6">
@@ -19,14 +32,20 @@ export default function GradeSlab() {
 
       <div className="card space-y-3">
         <label className="field">
-          <div className="field-label">Listing ID</div>
-          <input
+          <div className="field-label">Select a Graded Listing</div>
+          <select
             className="input"
             value={listingID}
-            onChange={e => setListingID(Number(e.target.value) || 0)}
-          />
+            onChange={e => setListingID(e.target.value === '' ? '' : Number(e.target.value))}
+          >
+            <option value="">Select a slab...</option>
+            {allSlabs.map(s => (
+              <option key={s.slabID} value={s.slabID}>
+                Listing #{s.slabID} ({s.company?.name} {s.grade})
+              </option>
+            ))}
+          </select>
         </label>
-        <button className="btn btn-neutral" onClick={load}>Fetch</button>
       </div>
 
       {!slab ? (
@@ -44,4 +63,3 @@ export default function GradeSlab() {
     </section>
   );
 }
-
