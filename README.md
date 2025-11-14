@@ -18,6 +18,7 @@ Install dependencies:
 ```bash
 cd PokeBase
 npm install
+npm run dev
 ```
 
 ---
