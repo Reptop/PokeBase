@@ -10,6 +10,7 @@ export default function Customers() {
   const [form, setForm] = useState<Omit<Customer, 'customerID'>>({
     email: '', name: '', phone: '', shippingAddress: '', totalOrders: 0
   });
+
   const [editing, setEditing] = useState<number | null>(null);
 
   const columns = useMemo(() => [

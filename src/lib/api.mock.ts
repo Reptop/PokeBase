@@ -4,6 +4,8 @@ let _id = 2000;
 const nextId = () => ++_id;
 
 const db = {
+
+  // sample data for now... I will change this to be mutable in the api methods (hopefully)
   customers: [
     { customerID: 1, email: 'benardo@example.com', name: 'Bernardo Mendes', phone: '541-555-0101', shippingAddress: '33 Pallet Town, Kanto', totalOrders: 2 },
     { customerID: 2, email: 'misty@example.com', name: 'Misty', phone: '541-555-0102', shippingAddress: '44 Cerulean Gym, Kanto', totalOrders: 1 },
@@ -74,7 +76,14 @@ function recomputeOrderTotals(orderID: number) {
   order.total = round2(order.subtotal + order.tax);
 }
 
+let nextCompanyId =
+  db.gradingCompanies.reduce(
+    (max: number, c: GradingCompany) => Math.max(max, c.companyID),
+    0
+  ) + 1;
+
 export const api = {
+
   // Customers
   async listCustomers(): Promise<Customer[]> {
     await sleep();
@@ -141,12 +150,14 @@ export const api = {
     await sleep();
     return [...db.cards];
   },
+
   async createCard(payload: Omit<Card, 'cardID'>): Promise<{ cardID: number }> {
     await sleep();
     const cardID = nextId();
     db.cards.push({ cardID, ...payload });
     return { cardID };
   },
+
   async updateCard(cardID: number, patch: Partial<Card>): Promise<void> {
     await sleep();
     const i = db.cards.findIndex(c => c.cardID === cardID);
@@ -154,6 +165,7 @@ export const api = {
       db.cards[i] = { ...db.cards[i], ...patch };
     }
   },
+
   async deleteCard(cardID: number): Promise<void> {
     await sleep();
 
@@ -182,6 +194,35 @@ export const api = {
     await sleep();
     return [...db.gradingCompanies];
   },
+
+  async createGradingCompany(
+    data: Omit<GradingCompany, 'companyID'>
+  ): Promise<GradingCompany> {
+    const created: GradingCompany = { companyID: nextCompanyId++, ...data };
+    db.gradingCompanies.push(created);
+    return Promise.resolve(created);
+  },
+
+  async updateGradingCompany(
+    id: number,
+    data: Omit<GradingCompany, 'companyID'>
+  ): Promise<GradingCompany | null> {
+    const idx = db.gradingCompanies.findIndex(
+      (c: GradingCompany) => c.companyID === id
+    );
+    if (idx === -1) return Promise.resolve(null);
+
+    db.gradingCompanies[idx] = { ...db.gradingCompanies[idx], ...data };
+    return Promise.resolve(db.gradingCompanies[idx]);
+  },
+
+  async deleteGradingCompany(id: number): Promise<void> {
+    db.gradingCompanies = db.gradingCompanies.filter(
+      (c: GradingCompany) => c.companyID !== id
+    );
+    return Promise.resolve();
+  },
+
 
   async listGradeSlabs(): Promise<(GradeSlab & { company: GradingCompany | null })[]> {
     await sleep();

@@ -6,6 +6,7 @@ import type { Card, Listing, GradingCompany } from '../types';
 
 type Row = Awaited<ReturnType<typeof api.listListings>>[number];
 
+// Form values
 type FormState = {
   cardID: number | '';
   price: number | '';
@@ -13,8 +14,8 @@ type FormState = {
   cardCondition: Listing['cardCondition'];
   quantityAvailable: number | '';
   status: Listing['status'];
-  companyID: number | '';   // NEW
-  grade: number | '';       // NEW
+  companyID: number | '';
+  grade: number | '';
 };
 
 export default function Listings() {
@@ -35,6 +36,7 @@ export default function Listings() {
     grade: '',
   });
 
+  // Memo for table columns definition
   const cols = useMemo(
     () => [
       { key: 'listingID', header: 'ID' },
@@ -56,7 +58,9 @@ export default function Listings() {
           <span className="tabular-nums">{r.quantityAvailable}</span>
         ),
       },
+
       { key: 'status', header: 'Status' },
+
       {
         key: 'card',
         header: 'Card',
@@ -159,9 +163,9 @@ export default function Listings() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (form.cardID === '' || form.price === '' || form.quantityAvailable === '') {
+    // Prevent submission if required fields are missing
+    if (form.cardID === '' || form.price === '' || form.quantityAvailable === '')
       return;
-    }
 
     const payload: Omit<Listing, 'listingID'> = {
       cardID: Number(form.cardID),
@@ -182,9 +186,8 @@ export default function Listings() {
 
     let listingID = editing ?? null;
 
-    if (editing) {
+    if (editing)
       await api.updateListing(editing, payload);
-    }
 
     else {
       const result = await api.createListing(payload);
@@ -200,10 +203,9 @@ export default function Listings() {
         });
       }
 
-      else {
+      else
         // If switching from graded -> raw, remove any existing slab
         await api.deleteGradeSlabForListing(listingID);
-      }
     }
 
     resetForm();
@@ -211,7 +213,9 @@ export default function Listings() {
   }
 
   async function onDelete(listingID: number) {
-    if (!confirm(`Delete listing #${listingID}?`)) return;
+    if (!confirm(`Delete listing #${listingID}?`))
+      return;
+
     await api.deleteListing(listingID);
     await refresh();
   }
