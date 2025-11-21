@@ -1,13 +1,16 @@
+// reactServer.cjs
 const express = require('express');
 const path = require('path');
 const db = require('./db.cjs');
-const app = express();
 
-const PORT = 23325;
+const app = express();
+const PORT = 23327;
 
 app.use(express.json());
 
-// RESET
+// ----------------- API ROUTES -----------------
+
+// RESET database → CALL sp_pokebase_reset()
 app.post('/api/reset', async (req, res) => {
   try {
     await db.query('CALL sp_pokebase_reset()');
@@ -31,7 +34,7 @@ app.get('/api/grading-companies', async (req, res) => {
   }
 });
 
-// DELETE grading company
+// DELETE grading company → CALL sp_delete_grading_company(?)
 app.delete('/api/grading-companies/:id', async (req, res) => {
   const id = Number(req.params.id);
   try {
@@ -43,13 +46,27 @@ app.delete('/api/grading-companies/:id', async (req, res) => {
   }
 });
 
-// static React build
-app.use(express.static(path.join(__dirname, 'dist')));
-app.get('*', (_, res) =>
-  res.sendFile(path.resolve(__dirname, 'dist', 'index.html'))
-);
+// ----------------- STATIC REACT BUILD -----------------
 
-app.listen(PORT, () => {
-  console.log(`React static + API server: http://classwork.engr.oregonstate.edu:${PORT}`);
+const distPath = path.join(__dirname, 'dist');
+
+// Serve static assets (JS, CSS, images)
+app.use(express.static(distPath));
+
+// Fallback for SPA routes (NOT a path string → no path-to-regexp)
+// Anything not handled above comes here
+app.use((req, res) => {
+  if (req.path.startsWith('/api')) {
+    // If we somehow reached here for /api, return an API 404, not index.html
+    return res.status(404).json({ error: 'API route not found' });
+  }
+  return res.sendFile(path.join(distPath, 'index.html'));
 });
 
+// ----------------- START SERVER -----------------
+
+app.listen(PORT, () => {
+  console.log(
+    `React static + API server: http://classwork.engr.oregonstate.edu:${PORT}`
+  );
+});

@@ -27,7 +27,8 @@ export default function GradingCompanies() {
   }, [loadRows]);
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this grading company?')) return;
+    if (!window.confirm('Delete this grading company?'))
+      return;
 
     setDeletingId(id);
     try {
@@ -73,7 +74,7 @@ export default function GradingCompanies() {
   return (
     <section className="space-y-6">
       <h1 className="section-title">Grading Companies</h1>
-      <p className="text-sm text-muted-foreground">
+      <p className="section-subtitle">
         Delete a grading company to change the data, then use the RESET button
         on the home page to restore the original sample rows.
       </p>
