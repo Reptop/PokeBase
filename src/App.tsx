@@ -8,6 +8,7 @@ import GradingCompanies from './pages/GradingCompanies';
 import GradeSlab from './pages/GradeSlab';
 import Orders from './pages/Orders';
 import OrderItems from './pages/OrderItems';
+import ResetButton from './components/ResetButton'; // ⬅️ add this
 
 // forgot to do this; make sure this is always here
 import './App.css';
@@ -17,6 +18,11 @@ export default function App() {
     <div className="min-h-screen bg-neutral-900 text-neutral-100">
       <Nav />
       <main className="max-w-5xl mx-auto p-4">
+
+        <div className="mb-4 flex items-center justify-between">
+          <ResetButton />
+        </div>
+
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/customers" element={<Customers />} />

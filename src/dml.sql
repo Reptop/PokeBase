@@ -9,7 +9,7 @@ SELECT customerID, email, name, phone, shippingAddress, totalOrders
 FROM Customers
 WHERE
     (@emailSearch IS NULL OR email LIKE CONCAT('%', @emailSearch, '%')) AND
-    (@nameSearch IS NULL OR name  LIKE CONCAT('%', @nameSearch,  '%'))
+    (@nameSearch  IS NULL OR name  LIKE CONCAT('%', @nameSearch,  '%'))
 ORDER BY customerID
 LIMIT @limit OFFSET @offset;
 
@@ -24,12 +24,12 @@ VALUES (@email, @name, @phone, @shippingAddress, @totalOrders);
 
 -- Update customer
 UPDATE Customers
-SET email = @email,
-    name  = @name,
-    phone = @phone,
+SET email           = @email,
+    name            = @name,
+    phone           = @phone,
     shippingAddress = @shippingAddress,
-    totalOrders = @totalOrders
-WHERE customerID = @customerID;
+    totalOrders     = @totalOrders
+WHERE customerID    = @customerID;
 
 -- Delete customer
 DELETE FROM Customers
@@ -40,7 +40,7 @@ WHERE customerID = @customerID;
  * CARDS
  ******************************************************************/
 
--- Browse cards - (Search option as well)
+-- Browse cards
 SELECT cardID, setName, cardNumber, name, variant, year
 FROM Cards
 ORDER BY cardID
@@ -57,12 +57,12 @@ VALUES (@setName, @cardNumber, @name, @variant, @year);
 
 -- Update card
 UPDATE Cards
-SET setName   = @setName,
-    cardNumber= @cardNumber,
-    name      = @name,
-    variant   = @variant,
-    year      = @year
-WHERE cardID  = @cardID;
+SET setName    = @setName,
+    cardNumber = @cardNumber,
+    name       = @name,
+    variant    = @variant,
+    year       = @year
+WHERE cardID   = @cardID;
 
 -- Delete card
 DELETE FROM Cards
@@ -90,9 +90,9 @@ VALUES (@name, @gradeScale, @url);
 
 -- Update grading company
 UPDATE GradingCompanies
-SET name = @name,
+SET name       = @name,
     gradeScale = @gradeScale,
-    url = @url
+    url        = @url
 WHERE companyID = @companyID;
 
 -- Delete grading company
@@ -106,7 +106,8 @@ WHERE companyID = @companyID;
 
 -- Browse listings with card info
 SELECT
-  L.listingID, L.cardID, C.name AS cardName, C.setName, C.cardNumber, C.variant, C.year,
+  L.listingID, L.cardID,
+  C.name AS cardName, C.setName, C.cardNumber, C.variant, C.year,
   L.price, L.type, L.cardCondition, L.quantityAvailable, L.status
 FROM Listings AS L
 JOIN Cards    AS C ON C.cardID = L.cardID
@@ -115,14 +116,19 @@ LIMIT @limit OFFSET @offset;
 
 -- Browse graded listings with slab detail
 SELECT
-  L.listingID, L.cardID, C.name AS cardName, C.setName, L.price, L.status,
-  G.companyID, GC.name AS companyName, GC.gradeScale, G.grade
-FROM Listings AS L
-JOIN GradeSlabs        AS G  ON G.slabID = L.listingID
-JOIN GradingCompanies  AS GC ON GC.companyID = G.companyID
-JOIN Cards             AS C  ON C.cardID = L.cardID
+  L.listingID, L.cardID,
+  C.name AS cardName, C.setName,
+  L.price, L.status,
+  G.companyID,
+  GC.name       AS companyName,
+  GC.gradeScale,
+  G.grade
+FROM Listings         AS L
+JOIN GradeSlabs       AS G  ON G.slabID     = L.listingID
+JOIN GradingCompanies AS GC ON GC.companyID = G.companyID
+JOIN Cards            AS C  ON C.cardID     = L.cardID
 WHERE L.type = 'graded'
-AND (@companyID IS NULL OR GC.companyID = @companyID) */
+  AND (@companyID IS NULL OR GC.companyID = @companyID)
 ORDER BY L.listingID
 LIMIT @limit OFFSET @offset;
 
@@ -141,14 +147,15 @@ VALUES (@cardID, @price, 'graded', NULL, @quantityAvailable, @status);
 
 -- Update listing (generic)
 UPDATE Listings
-SET cardID = @cardID,
-    price  = @price,
-    type   = @type,                 -- 'raw' or 'graded'
-    cardCondition = @cardCondition, -- pass NULL for graded
+SET cardID           = @cardID,
+    price            = @price,
+    type             = @type,           -- 'raw' or 'graded'
+    cardCondition    = @cardCondition,  -- pass NULL for graded
     quantityAvailable = @quantityAvailable,
-    status = @status
-WHERE listingID = @listingID;
+    status           = @status
+WHERE listingID      = @listingID;
 
+-- Delete listing
 DELETE FROM Listings
 WHERE listingID = @listingID;
 
@@ -158,8 +165,13 @@ WHERE listingID = @listingID;
  ******************************************************************/
 
 -- Get slab by listing
-SELECT G.slabID, G.companyID, GC.name AS companyName, GC.gradeScale, G.grade
-FROM GradeSlabs AS G
+SELECT
+  G.slabID,
+  G.companyID,
+  GC.name       AS companyName,
+  GC.gradeScale,
+  G.grade
+FROM GradeSlabs       AS G
 JOIN GradingCompanies AS GC ON GC.companyID = G.companyID
 WHERE G.slabID = @listingID;
 
@@ -170,8 +182,8 @@ VALUES (@listingID, @companyID, @grade);
 -- Update slab
 UPDATE GradeSlabs
 SET companyID = @companyID,
-    grade = @grade
-WHERE slabID = @listingID;
+    grade     = @grade
+WHERE slabID  = @listingID;
 
 -- Delete slab
 DELETE FROM GradeSlabs
@@ -184,9 +196,15 @@ WHERE slabID = @listingID;
 
 -- Browse orders with customer name and totals
 SELECT
-  O.orderID, O.customerID, C.name AS customerName, O.orderDate, O.status,
-  O.subtotal, O.tax, O.total
-FROM Orders AS O
+  O.orderID,
+  O.customerID,
+  C.name AS customerName,
+  O.orderDate,
+  O.status,
+  O.subtotal,
+  O.tax,
+  O.total
+FROM Orders    AS O
 JOIN Customers AS C ON C.customerID = O.customerID
 ORDER BY O.orderDate DESC, O.orderID DESC
 LIMIT @limit OFFSET @offset;
@@ -208,8 +226,9 @@ SET customerID = @customerID,
     subtotal   = @subtotal,
     tax        = @tax,
     total      = @total
-WHERE orderID = @orderID;
+WHERE orderID  = @orderID;
 
+-- Delete order
 DELETE FROM Orders
 WHERE orderID = @orderID;
 
@@ -220,9 +239,17 @@ WHERE orderID = @orderID;
 
 -- Browse items in an order (with listing + card info)
 SELECT
-  OI.orderID, OI.listingID, OI.quantity, OI.unitPrice,
-  L.price AS currentListingPrice, L.status AS listingStatus,
-  C.name AS cardName, C.setName, C.cardNumber, L.type, L.cardCondition
+  OI.orderID,
+  OI.listingID,
+  OI.quantity,
+  OI.unitPrice,
+  L.price        AS currentListingPrice,
+  L.status       AS listingStatus,
+  C.name         AS cardName,
+  C.setName,
+  C.cardNumber,
+  L.type,
+  L.cardCondition
 FROM OrderItems AS OI
 JOIN Listings   AS L ON L.listingID = OI.listingID
 JOIN Cards      AS C ON C.cardID    = L.cardID
@@ -242,10 +269,9 @@ WHERE orderID  = @orderID
 
 -- Delete one order item
 DELETE FROM OrderItems
-WHERE orderID = @orderID
+WHERE orderID  = @orderID
   AND listingID = @listingID;
 
 -- Delete all items for an order
 DELETE FROM OrderItems
-WHERE orderID = @orderID;
 
