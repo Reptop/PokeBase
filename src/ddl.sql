@@ -18,9 +18,6 @@ BEGIN
     DROP TABLE IF EXISTS Customers;
     DROP TABLE IF EXISTS Cards;
 
-    -- Re-enable FK checks for the new schema
-    SET FOREIGN_KEY_CHECKS = 1;
-
     -- ======================
     -- Tables
     -- ======================
@@ -106,11 +103,6 @@ BEGIN
             ON DELETE CASCADE
             ON UPDATE CASCADE
     );
-
-    -- ======================
-    -- Sample data
-    -- (exactly as you pasted)
-    -- ======================
 
     INSERT INTO Customers (email, name, phone, shippingAddress)
     VALUES

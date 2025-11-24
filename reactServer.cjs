@@ -8,6 +8,7 @@ const PORT = 23327;
 
 app.use(express.json());
 
+// The only routes we have now is for resetting the database and managing grading companies
 // ----------------- API ROUTES -----------------
 
 // RESET database → CALL sp_pokebase_reset()
@@ -15,7 +16,9 @@ app.post('/api/reset', async (req, res) => {
   try {
     await db.query('CALL sp_pokebase_reset()');
     res.status(200).json({ ok: true });
-  } catch (err) {
+  }
+
+  catch (err) {
     console.error('RESET failed:', err);
     res.status(500).json({ error: 'Reset failed' });
   }
@@ -28,7 +31,9 @@ app.get('/api/grading-companies', async (req, res) => {
       'SELECT companyID, name, gradeScale, url FROM GradingCompanies ORDER BY companyID'
     );
     res.json(rows);
-  } catch (err) {
+  }
+
+  catch (err) {
     console.error('GET grading companies failed:', err);
     res.status(500).json({ error: 'Failed to load grading companies' });
   }
@@ -40,7 +45,9 @@ app.delete('/api/grading-companies/:id', async (req, res) => {
   try {
     await db.query('CALL sp_delete_grading_company(?)', [id]);
     res.status(204).send();
-  } catch (err) {
+  }
+
+  catch (err) {
     console.error('DELETE grading company failed:', err);
     res.status(500).json({ error: 'Delete failed' });
   }
@@ -53,8 +60,6 @@ const distPath = path.join(__dirname, 'dist');
 // Serve static assets (JS, CSS, images)
 app.use(express.static(distPath));
 
-// Fallback for SPA routes (NOT a path string → no path-to-regexp)
-// Anything not handled above comes here
 app.use((req, res) => {
   if (req.path.startsWith('/api')) {
     // If we somehow reached here for /api, return an API 404, not index.html

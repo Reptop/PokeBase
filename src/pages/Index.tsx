@@ -14,7 +14,7 @@ export default function Index() {
       <h1 className="section-title">Project Index</h1>
 
       <p className="section-subtitle">
-        Front-end pages for CS340 CRUD. We used minimal backend for routing only :)
+        Front-end pages for CRUD. Currently in the process of wiring the backend to MySQL!
       </p>
 
       <p className="section-subtitle">

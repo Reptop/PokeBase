@@ -17,7 +17,9 @@ export default function GradingCompanies() {
       }
       const data: GradingCompany[] = await res.json();
       setRows(data);
-    } finally {
+    }
+
+    finally {
       setLoading(false);
     }
   }, []);
