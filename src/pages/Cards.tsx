@@ -92,20 +92,20 @@ export default function Cards() {
       year: form.year === null || form.year === undefined ? null : Number(form.year),
     };
 
-    if (editing) {
+    if (editing)
       await api.updateCard(editing, payload);
-    }
 
-    else {
+    else
       await api.createCard(payload);
-    }
 
     resetForm();
     await refresh();
   }
 
   async function onDelete(cardID: number) {
-    if (!confirm(`Delete card #${cardID}?`)) return;
+    if (!confirm(`Delete card #${cardID}?`))
+      return;
+
     await api.deleteCard(cardID);
     await refresh();
   }
@@ -203,6 +203,8 @@ export default function Cards() {
         </div>
       </form>
 
+
+
       {/* Table */}
       <div className="space-y-2">
         <h2 className="text-lg font-semibold text-neutral-100">Browse Cards</h2>
@@ -216,6 +218,7 @@ export default function Cards() {
           </div>
         )}
       </div>
+
     </section>
   );
 }

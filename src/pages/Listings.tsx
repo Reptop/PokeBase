@@ -235,6 +235,29 @@ export default function Listings() {
           {editing ? `Update Listing #${editing}` : 'Add New Listing'}
         </h2>
 
+        {/* Condition legend */}
+        <div className="text-xs text-neutral-300 flex flex-wrap gap-x-4 gap-y-1">
+          <span className="font-semibold text-neutral-100">
+            Condition legend:
+          </span>
+          <span>
+            <span className="font-mono">NM</span> = Near Mint
+          </span>
+          <span>
+            <span className="font-mono">LP</span> = Lightly Played
+          </span>
+          <span>
+            <span className="font-mono">MP</span> = Moderately Played
+          </span>
+          <span>
+            <span className="font-mono">HP</span> = Heavily Played
+          </span>
+          <span>
+            <span className="font-mono">DMG</span> = Damaged
+          </span>
+        </div>
+
+
         <div className="grid md:grid-cols-2 gap-4">
           <FormField label="Card">
             <select
