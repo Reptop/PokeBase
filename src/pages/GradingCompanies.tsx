@@ -28,25 +28,33 @@ export default function GradingCompanies() {
     loadRows();
   }, [loadRows]);
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Delete this grading company?'))
-      return;
-
-    setDeletingId(id);
-    try {
-      const res = await fetch(`/api/grading-companies/${id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        console.error('Delete failed', await res.text());
-        alert('Delete failed – check server logs.');
+  const handleDelete = useCallback(
+    async (id: number) => {
+      if (!window.confirm('Delete this grading company?'))
         return;
+
+      setDeletingId(id);
+      try {
+        const res = await fetch(`/api/grading-companies/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (!res.ok) {
+          console.error('Delete failed', await res.text());
+          alert('Delete failed – check server logs.');
+          return;
+        }
+
+        await loadRows();
       }
-      await loadRows();
-    } finally {
-      setDeletingId(null);
-    }
-  };
+
+      finally {
+        setDeletingId(null);
+      }
+    },
+    [loadRows]
+  );
+
 
   const cols = useMemo(
     () => [
@@ -57,7 +65,6 @@ export default function GradingCompanies() {
       {
         key: 'actions',
         header: 'Actions',
-        // Table<T> should call this when present
         render: (row: GradingCompany) => (
           <button
             type="button"
@@ -72,6 +79,8 @@ export default function GradingCompanies() {
     ],
     [deletingId, handleDelete]
   );
+
+
 
   return (
     <section className="space-y-6">
