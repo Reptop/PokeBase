@@ -42,6 +42,7 @@ app.get('/api/grading-companies', async (req, res) => {
 
 });
 
+// UPDATE grading company → CALL sp_update_grading_company(?,?,?)
 app.put('/api/grading-companies/:id', async (req, res) => {
 
   const id = Number(req.params.id);
@@ -65,7 +66,6 @@ app.put('/api/grading-companies/:id', async (req, res) => {
     ]);
 
     res.status(200).json({ ok: true });
-
   }
 
   catch (err) {
@@ -74,6 +74,7 @@ app.put('/api/grading-companies/:id', async (req, res) => {
   }
 
 });
+
 
 // DELETE grading company → CALL sp_delete_grading_company(?)
 app.delete('/api/grading-companies/:id', async (req, res) => {
@@ -93,6 +94,35 @@ app.delete('/api/grading-companies/:id', async (req, res) => {
     res.status(500).json({ error: 'Delete failed' });
   }
 });
+
+// CREATE grading company → CALL sp_create_grading_company(?,?,?)
+app.post('/api/grading-companies', async (req, res) => {
+  const { name, gradeScale, url } = req.body || {};
+
+  if (!name || !gradeScale) {
+    return res
+      .status(400)
+      .json({ error: 'name and gradeScale are required to create a grading company' });
+  }
+
+  try {
+    await db.query('CALL sp_create_grading_company(?,?,?)', [
+      name,
+      gradeScale,
+      url ?? null,
+    ]);
+
+    // You can just say "ok" and let the client refetch:
+    res.status(201).json({ ok: true });
+
+    // or if you later modify the proc to return LAST_INSERT_ID(),
+    // you can send back the new companyID here.
+  } catch (err) {
+    console.error('CREATE grading company failed:', err);
+    res.status(500).json({ error: 'Create failed' });
+  }
+});
+
 
 // ================= CUSTOMERS =================
 
