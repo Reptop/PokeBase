@@ -240,6 +240,10 @@ DELIMITER ;
 
 ----- End of Cards CUD -----  
 
+
+
+---- Beginning of Listings CUD -----
+
 -- Select graded listings for dropdown
 
 DROP PROCEDURE IF EXISTS sp_select_graded_listings_for_dropdown;
@@ -255,14 +259,374 @@ BEGIN
         gc.name       AS companyName,
         gc.gradeScale AS companyScale
     FROM Listings AS l
+
     JOIN GradeSlabs AS gs
         ON gs.slabID = l.listingID      -- 1-to-1: slabID ↔ listingID
+
     JOIN GradingCompanies AS gc
         ON gc.companyID = gs.companyID
+
     WHERE l.type = 'graded'
     ORDER BY l.listingID;
 END//
 
 DELIMITER ;
 
+-- INSERT listing
+DROP PROCEDURE IF EXISTS sp_insert_listing;
+DELIMITER //
+
+CREATE PROCEDURE sp_insert_listing (
+    IN p_cardID            INT,
+    IN p_price             DECIMAL(10,2),
+    IN p_type              ENUM('raw','graded'),
+    IN p_cardCondition     ENUM('M','NM','LP','MP','HP','D'),
+    IN p_quantityAvailable INT,
+    IN p_status            ENUM('active','sold_out','hidden')
+)
+BEGIN
+    INSERT INTO Listings (
+        cardID,
+        price,
+        type,
+        cardCondition,
+        quantityAvailable,
+        status
+    )
+    VALUES (
+        p_cardID,
+        p_price,
+        p_type,
+        p_cardCondition,
+        p_quantityAvailable,
+        p_status
+    );
+END//
+
+DELIMITER ;
+
+
+-- SELECT all listings
+DROP PROCEDURE IF EXISTS sp_select_all_listings;
+DELIMITER //
+
+CREATE PROCEDURE sp_select_all_listings ()
+BEGIN
+    SELECT
+        listingID,
+        cardID,
+        price,
+        type,
+        cardCondition,
+        quantityAvailable,
+        status
+    FROM Listings
+    ORDER BY listingID;
+END//
+
+DELIMITER ;
+
+
+-- SELECT listing by ID
+DROP PROCEDURE IF EXISTS sp_select_listing_by_id;
+DELIMITER //
+
+CREATE PROCEDURE sp_select_listing_by_id (
+    IN p_listingID INT
+)
+BEGIN
+    SELECT
+        listingID,
+        cardID,
+        price,
+        type,
+        cardCondition,
+        quantityAvailable,
+        status
+    FROM Listings
+    WHERE listingID = p_listingID;
+END//
+
+DELIMITER ;
+
+
+-- UPDATE listing
+DROP PROCEDURE IF EXISTS sp_update_listing;
+DELIMITER //
+
+CREATE PROCEDURE sp_update_listing (
+    IN p_listingID         INT,
+    IN p_cardID            INT,
+    IN p_price             DECIMAL(10,2),
+    IN p_type              ENUM('raw','graded'),
+    IN p_cardCondition     ENUM('M','NM','LP','MP','HP','D'),
+    IN p_quantityAvailable INT,
+    IN p_status            ENUM('active','sold_out','hidden')
+)
+BEGIN
+    UPDATE Listings
+    SET
+        cardID            = p_cardID,
+        price             = p_price,
+        type              = p_type,
+        cardCondition     = p_cardCondition,
+        quantityAvailable = p_quantityAvailable,
+        status            = p_status
+    WHERE listingID = p_listingID;
+END//
+
+DELIMITER ;
+
+
+-- DELETE listing
+DROP PROCEDURE IF EXISTS sp_delete_listing;
+DELIMITER //
+
+CREATE PROCEDURE sp_delete_listing (
+    IN p_listingID INT
+)
+BEGIN
+    DELETE FROM Listings
+    WHERE listingID = p_listingID;
+END//
+
+DELIMITER ;
+
+---- End of Listings CUD -----
+
+
+----- Beginning of OrderItems CUD -----
+
+-- INSERT order item
+DROP PROCEDURE IF EXISTS sp_insert_order_item;
+DELIMITER //
+
+CREATE PROCEDURE sp_insert_order_item (
+    IN p_orderID   INT,
+    IN p_listingID INT,
+    IN p_quantity  INT,
+    IN p_unitPrice DECIMAL(10,2)
+)
+BEGIN
+    INSERT INTO OrderItems (
+        orderID,
+        listingID,
+        quantity,
+        unitPrice
+    )
+    VALUES (
+        p_orderID,
+        p_listingID,
+        p_quantity,
+        p_unitPrice
+    );
+END//
+
+DELIMITER ;
+
+
+-- SELECT all order items
+DROP PROCEDURE IF EXISTS sp_select_all_order_items;
+DELIMITER //
+
+CREATE PROCEDURE sp_select_all_order_items ()
+BEGIN
+    SELECT
+        orderID,
+        listingID,
+        quantity,
+        unitPrice
+    FROM OrderItems
+    ORDER BY orderID, listingID;
+END//
+
+DELIMITER ;
+
+
+-- SELECT one order item by composite key
+DROP PROCEDURE IF EXISTS sp_select_order_item;
+DELIMITER //
+
+CREATE PROCEDURE sp_select_order_item (
+    IN p_orderID   INT,
+    IN p_listingID INT
+)
+BEGIN
+    SELECT
+        orderID,
+        listingID,
+        quantity,
+        unitPrice
+    FROM OrderItems
+    WHERE orderID = p_orderID
+      AND listingID = p_listingID;
+END//
+
+DELIMITER ;
+
+
+-- UPDATE order item
+DROP PROCEDURE IF EXISTS sp_update_order_item;
+DELIMITER //
+
+CREATE PROCEDURE sp_update_order_item (
+    IN p_orderID   INT,
+    IN p_listingID INT,
+    IN p_quantity  INT,
+    IN p_unitPrice DECIMAL(10,2)
+)
+BEGIN
+    UPDATE OrderItems
+    SET
+        quantity  = p_quantity,
+        unitPrice = p_unitPrice
+    WHERE orderID   = p_orderID
+      AND listingID = p_listingID;
+END//
+
+DELIMITER ;
+
+
+-- DELETE order item
+DROP PROCEDURE IF EXISTS sp_delete_order_item;
+DELIMITER //
+
+CREATE PROCEDURE sp_delete_order_item (
+    IN p_orderID   INT,
+    IN p_listingID INT
+)
+BEGIN
+    DELETE FROM OrderItems
+    WHERE orderID   = p_orderID
+      AND listingID = p_listingID;
+END//
+
+DELIMITER ;
+----- End of OrderItems CUD ----- 
+
+
+
+----- Beginning of Orders CUD -----
+
+-- INSERT order
+DROP PROCEDURE IF EXISTS sp_insert_order;
+DELIMITER //
+
+CREATE PROCEDURE sp_insert_order (
+    IN p_customerID INT,
+    IN p_orderDate  DATETIME,
+    IN p_status     ENUM('pending','paid','shipped','canceled','refunded'),
+    IN p_subtotal   DECIMAL(10,2),
+    IN p_tax        DECIMAL(10,2),
+    IN p_total      DECIMAL(10,2)
+)
+BEGIN
+    INSERT INTO Orders (
+        customerID,
+        orderDate,
+        status,
+        subtotal,
+        tax,
+        total
+    )
+    VALUES (
+        p_customerID,
+        p_orderDate,
+        p_status,
+        p_subtotal,
+        p_tax,
+        p_total
+    );
+END//
+
+DELIMITER ;
+
+
+-- SELECT all orders
+DROP PROCEDURE IF EXISTS sp_select_all_orders;
+DELIMITER //
+
+CREATE PROCEDURE sp_select_all_orders ()
+BEGIN
+    SELECT
+        orderID,
+        customerID,
+        orderDate,
+        status,
+        subtotal,
+        tax,
+        total
+    FROM Orders
+    ORDER BY orderID;
+END//
+
+DELIMITER ;
+
+
+-- SELECT order by ID
+DROP PROCEDURE IF EXISTS sp_select_order_by_id;
+DELIMITER //
+
+CREATE PROCEDURE sp_select_order_by_id (
+    IN p_orderID INT
+)
+BEGIN
+    SELECT
+        orderID,
+        customerID,
+        orderDate,
+        status,
+        subtotal,
+        tax,
+        total
+    FROM Orders
+    WHERE orderID = p_orderID;
+END//
+
+DELIMITER ;
+
+
+-- UPDATE order
+DROP PROCEDURE IF EXISTS sp_update_order;
+DELIMITER //
+
+CREATE PROCEDURE sp_update_order (
+    IN p_orderID   INT,
+    IN p_customerID INT,
+    IN p_orderDate DATETIME,
+    IN p_status    ENUM('pending','paid','shipped','canceled','refunded'),
+    IN p_subtotal  DECIMAL(10,2),
+    IN p_tax       DECIMAL(10,2),
+    IN p_total     DECIMAL(10,2)
+)
+BEGIN
+    UPDATE Orders
+    SET
+        customerID = p_customerID,
+        orderDate  = p_orderDate,
+        status     = p_status,
+        subtotal   = p_subtotal,
+        tax        = p_tax,
+        total      = p_total
+    WHERE orderID = p_orderID;
+END//
+
+DELIMITER ;
+
+
+-- DELETE order
+DROP PROCEDURE IF EXISTS sp_delete_order;
+DELIMITER //
+
+CREATE PROCEDURE sp_delete_order (
+    IN p_orderID INT
+)
+BEGIN
+    DELETE FROM Orders
+    WHERE orderID = p_orderID;
+END//
+
+DELIMITER ;
+
+----- End of Orders CUD -----
 
