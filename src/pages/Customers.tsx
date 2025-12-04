@@ -33,9 +33,13 @@ export default function Customers() {
       }
       const data: Customer[] = await res.json();
       setRows(data);
-    } catch (err) {
+    }
+
+    catch (err) {
       console.error('Error fetching customers', err);
-    } finally {
+    }
+
+    finally {
       setLoading(false);
     }
   }, []);
@@ -54,6 +58,7 @@ export default function Customers() {
       phone: c.phone,
       shippingAddress: c.shippingAddress,
     });
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -81,7 +86,9 @@ export default function Customers() {
           alert('Update failed – check server logs.');
           return;
         }
-      } else {
+      }
+
+      else {
         // POST /api/customers
         const res = await fetch('/api/customers', {
           method: 'POST',
@@ -98,7 +105,9 @@ export default function Customers() {
 
       resetForm();
       await refresh();
-    } catch (err) {
+    }
+
+    catch (err) {
       console.error('Submit error', err);
       alert('Unexpected error – check console/server logs.');
     }
@@ -121,7 +130,9 @@ export default function Customers() {
       }
 
       await refresh();
-    } catch (err) {
+    }
+
+    catch (err) {
       console.error('Delete error', err);
       alert('Unexpected error – check console/server logs.');
     }

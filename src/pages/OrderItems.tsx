@@ -113,7 +113,9 @@ export default function OrderItems() {
     // If we already have a valid selected order, just reload its items
     if (orderID && list.some(o => o.orderID === orderID)) {
       await loadOrderItems(orderID);
-    } else {
+    }
+
+    else {
       setRows([]);
       setLoading(false);
     }
