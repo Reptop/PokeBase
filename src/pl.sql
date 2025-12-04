@@ -24,7 +24,6 @@ DROP PROCEDURE IF EXISTS sp_create_grading_company;
 DELIMITER //
 
 CREATE PROCEDURE sp_create_grading_company (
-    IN p_companyID INT,
     IN p_name VARCHAR(32),
     IN p_gradeScale enum('10', '100'),
     IN p_url varchar(255)
@@ -503,8 +502,6 @@ END//
 
 DELIMITER ;
 ----- End of OrderItems CUD ----- 
-
-
 
 ----- Beginning of Orders CUD -----
 

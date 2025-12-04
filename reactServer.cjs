@@ -42,6 +42,39 @@ app.get('/api/grading-companies', async (req, res) => {
 
 });
 
+app.put('/api/grading-companies/:id', async (req, res) => {
+
+  const id = Number(req.params.id);
+  const { name, gradeScale, url } = req.body || {};
+
+  // invalid input check
+  if (!Number.isInteger(id))
+    return res.status(400).json({ error: 'Invalid companyID' });
+
+  if (!name || !gradeScale)
+    return res
+      .status(400)
+      .json({ error: 'name and gradeScale are required to update a grading company' });
+
+  try {
+    await db.query('CALL sp_update_grading_company(?,?,?,?)', [
+      id,
+      name,
+      gradeScale,
+      url ?? null,
+    ]);
+
+    res.status(200).json({ ok: true });
+
+  }
+
+  catch (err) {
+    console.error('UPDATE grading company failed:', err);
+    res.status(500).json({ error: 'Update failed' });
+  }
+
+});
+
 // DELETE grading company → CALL sp_delete_grading_company(?)
 app.delete('/api/grading-companies/:id', async (req, res) => {
   const id = Number(req.params.id);
