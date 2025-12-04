@@ -226,6 +226,102 @@ app.delete('/api/customers/:id', async (req, res) => {
 
 });
 
+// ================= CARDS =================
+
+// GET /api/cards → list all cards
+app.get('/api/cards', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT cardID, setName, cardNumber, name, variant, year FROM Cards ORDER BY cardID'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /api/cards failed:', err);
+    res.status(500).json({ error: 'Failed to load cards' });
+  }
+});
+
+// POST /api/cards → create card
+app.post('/api/cards', async (req, res) => {
+  const { setName, cardNumber, name, variant, year } = req.body || {};
+
+  // basic validation: required fields
+  if (!setName || !cardNumber || !name || !variant) {
+    return res.status(400).json({
+      error: 'setName, cardNumber, name, and variant are required to create a card',
+    });
+  }
+
+  // normalize year: allow null
+  const yearValue =
+    year === null || year === undefined || year === ''
+      ? null
+      : Number(year);
+
+  try {
+    await db.query(
+      'INSERT INTO Cards (setName, cardNumber, name, variant, year) VALUES (?,?,?,?,?)',
+      [setName, cardNumber, name, variant, yearValue]
+    );
+
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/cards failed:', err);
+    res.status(500).json({ error: 'Failed to create card' });
+  }
+});
+
+// PUT /api/cards/:id → update card
+app.put('/api/cards/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const { setName, cardNumber, name, variant, year } = req.body || {};
+
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Invalid cardID' });
+  }
+
+  if (!setName || !cardNumber || !name || !variant) {
+    return res.status(400).json({
+      error: 'setName, cardNumber, name, and variant are required to update a card',
+    });
+  }
+
+  const yearValue =
+    year === null || year === undefined || year === ''
+      ? null
+      : Number(year);
+
+  try {
+    await db.query(
+      'UPDATE Cards SET setName = ?, cardNumber = ?, name = ?, variant = ?, year = ? WHERE cardID = ?',
+      [setName, cardNumber, name, variant, yearValue, id]
+    );
+
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('PUT /api/cards/:id failed:', err);
+    res.status(500).json({ error: 'Failed to update card' });
+  }
+});
+
+// DELETE /api/cards/:id → delete card
+app.delete('/api/cards/:id', async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id)) {
+    return res.status(400).json({ error: 'Invalid cardID' });
+  }
+
+  try {
+    await db.query('DELETE FROM Cards WHERE cardID = ?', [id]);
+    res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /api/cards/:id failed:', err);
+    res.status(500).json({ error: 'Failed to delete card' });
+  }
+});
+
+
 // ----------------- STATIC REACT BUILD -----------------
 
 const distPath = path.join(__dirname, 'dist');
