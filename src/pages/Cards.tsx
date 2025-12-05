@@ -73,7 +73,7 @@ export default function Cards() {
     const payload: CardForm = {
       ...form,
       year:
-        form.year === null || form.year === undefined || form.year === ''
+        form.year === null || form.year === undefined
           ? null
           : Number(form.year),
     };

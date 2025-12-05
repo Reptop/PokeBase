@@ -22,6 +22,7 @@ export default function GradingCompanies() {
 
   const loadRows = useCallback(async () => {
     setLoading(true);
+
     try {
       const res = await fetch('/api/grading-companies');
       if (!res.ok) {
@@ -30,7 +31,9 @@ export default function GradingCompanies() {
       }
       const data: GradingCompany[] = await res.json();
       setRows(data);
-    } finally {
+    }
+
+    finally {
       setLoading(false);
     }
   }, []);
