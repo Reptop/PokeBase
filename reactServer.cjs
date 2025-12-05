@@ -315,7 +315,9 @@ app.delete('/api/cards/:id', async (req, res) => {
   try {
     await db.query('DELETE FROM Cards WHERE cardID = ?', [id]);
     res.status(204).send();
-  } catch (err) {
+  }
+
+  catch (err) {
     console.error('DELETE /api/cards/:id failed:', err);
     res.status(500).json({ error: 'Failed to delete card' });
   }
