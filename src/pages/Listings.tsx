@@ -286,7 +286,7 @@ export default function Listings() {
         header: 'Price',
         className: 'text-right w-[120px]',
         render: (r: Row) => (
-          <span className="tabular-nums">${r.price}</span>
+          <span className="tabular-nums">${Number(r.price)}</span>
         ),
       },
 
