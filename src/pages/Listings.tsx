@@ -280,6 +280,7 @@ export default function Listings() {
     () => [
       { key: 'listingID', header: 'ID' },
       { key: 'type', header: 'Type' },
+
       {
         key: 'price',
         header: 'Price',
@@ -288,6 +289,7 @@ export default function Listings() {
           <span className="tabular-nums">${r.price.toFixed(2)}</span>
         ),
       },
+
       { key: 'cardCondition', header: 'Cond.' },
       {
         key: 'quantityAvailable',
