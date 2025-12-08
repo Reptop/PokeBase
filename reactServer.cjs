@@ -323,6 +323,175 @@ app.delete('/api/cards/:id', async (req, res) => {
   }
 });
 
+// ================= Listings =================
+
+// GET /api/listings → list all listings
+app.get('/api/listings', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT listingID, cardID, price, type, cardCondition, quantityAvailable, status FROM Listings ORDER BY listingID'
+    );
+    res.json(rows);
+  }
+
+  catch (err) {
+    console.error('GET /api/listings failed:', err);
+    res.status(500).json({ error: 'Failed to load listings' });
+  }
+});
+
+// POST /api/listings → create listing
+app.post('/api/listings', async (req, res) => {
+  const {
+    cardID,
+    price,
+    type,
+    cardCondition,
+    quantityAvailable,
+    status,
+  } = req.body || {};
+
+  // Normalize / coerce
+  const cardIdNum = Number(cardID);
+  const priceNum = Number(price);
+  const qtyNum = Number(quantityAvailable);
+  const statusValue = status ?? 'active'; // default
+  const conditionValue = cardCondition ?? null; // allow null
+
+  // Basic validation: required fields
+  if (!Number.isInteger(cardIdNum) || cardIdNum <= 0)
+    return res.status(400).json({ error: 'Valid cardID is required' });
+
+  if (!Number.isFinite(priceNum) || priceNum <= 0)
+    return res.status(400).json({ error: 'Valid price is required' });
+
+  if (type !== 'raw' && type !== 'graded')
+    return res.status(400).json({ error: "type must be 'raw' or 'graded'" });
+
+  if (!Number.isInteger(qtyNum) || qtyNum < 0) {
+    return res
+      .status(400)
+      .json({ error: 'quantityAvailable must be a non-negative integer' });
+  }
+
+  const validStatuses = ['active', 'sold_out', 'hidden'];
+  if (statusValue && !validStatuses.includes(statusValue)) {
+    return res.status(400).json({
+      error: `status must be one of: ${validStatuses.join(', ')}`,
+    });
+  }
+
+  try {
+    await db.query(
+      `INSERT INTO Listings
+        (cardID, price, type, cardCondition, quantityAvailable, status)
+       VALUES (?,?,?,?,?,?)`,
+      [cardIdNum, priceNum, type, conditionValue, qtyNum, statusValue]
+    );
+
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/listings failed:', err);
+    res.status(500).json({ error: 'Failed to create listing' });
+  }
+});
+
+// PUT /api/listings/:id → update listing
+app.put('/api/listings/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const {
+    cardID,
+    price,
+    type,
+    cardCondition,
+    quantityAvailable,
+    status,
+  } = req.body || {};
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid listingID' });
+  }
+
+  const cardIdNum = Number(cardID);
+  const priceNum = Number(price);
+  const qtyNum = Number(quantityAvailable);
+  const statusValue = status ?? 'active';
+  const conditionValue = cardCondition ?? null;
+
+  // ----- validation -----
+  if (!Number.isInteger(cardIdNum) || cardIdNum <= 0) {
+    return res.status(400).json({ error: 'Valid cardID is required' });
+  }
+
+  if (!Number.isFinite(priceNum) || priceNum <= 0) {
+    return res.status(400).json({ error: 'Valid price is required' });
+  }
+
+  if (type !== 'raw' && type !== 'graded') {
+    return res.status(400).json({ error: "type must be 'raw' or 'graded'" });
+  }
+
+  if (!Number.isInteger(qtyNum) || qtyNum < 0) {
+    return res
+      .status(400)
+      .json({ error: 'quantityAvailable must be a non-negative integer' });
+  }
+
+  const validStatuses = ['active', 'sold_out', 'hidden'];
+  if (statusValue && !validStatuses.includes(statusValue)) {
+    return res.status(400).json({
+      error: `status must be one of: ${validStatuses.join(', ')}`,
+    });
+  }
+
+  try {
+    await db.query(
+      `UPDATE Listings
+       SET cardID = ?,
+           price = ?,
+           type = ?,
+           cardCondition = ?,
+           quantityAvailable = ?,
+           status = ?
+       WHERE listingID = ?`,
+      [cardIdNum, priceNum, type, conditionValue, qtyNum, statusValue, id]
+    );
+
+    res.status(200).json({ ok: true });
+  }
+
+  catch (err) {
+    console.error('PUT /api/listings/:id failed:', err);
+    res.status(500).json({ error: 'Failed to update listing' });
+  }
+});
+
+// DELETE /api/listings/:id → delete listing
+app.delete('/api/listings/:id', async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid listingID' });
+  }
+
+  try {
+    await db.query('DELETE FROM Listings WHERE listingID = ?', [id]);
+    res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /api/listings/:id failed:', err);
+
+    // If Listings.listingID is referenced by OrderItems.listingID, you may hit FK errors:
+    if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.errno === 1451) {
+      return res.status(409).json({
+        error:
+          'Cannot delete this listing because it has related order items! Delete those order items first (or use ON DELETE CASCADE).',
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to delete listing' });
+  }
+});
+
 
 // ----------------- STATIC REACT BUILD -----------------
 

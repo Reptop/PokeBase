@@ -29,9 +29,12 @@ export default function Cards() {
       }
       const data: Card[] = await res.json();
       setRows(data);
-    } catch (err) {
+    }
+
+    catch (err) {
       console.error('Error fetching cards', err);
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   }, []);
