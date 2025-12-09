@@ -48,10 +48,22 @@ async function recalcOrderTotals(orderID) {
     console.log(
       `Recalculated totals for order ${orderID}: subtotal=${subtotal}, tax=${tax}, total=${total}`
     );
-  } catch (err) {
+  }
+
+  catch (err) {
     console.error('recalcOrderTotals failed for order', orderID, err);
   }
 }
+
+function logDbError(label, err) {
+  console.error(label, {
+    code: err.code,
+    errno: err.errno,
+    sqlState: err.sqlState,
+    message: err.sqlMessage,
+  });
+}
+
 
 
 // ================= GRADING COMPANIES =================
