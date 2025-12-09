@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type DropdownSlab = {
+  listingID: number;                    // 👈 comes from SQL: l.listingID
   slabID: number;
   grade: number;
   companyName: string;
@@ -19,25 +20,20 @@ export default function GradeSlab() {
       setError(null);
 
       const res = await fetch('/api/grade-slabs/for-dropdown');
-      if (!res.ok)
-        throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const data: DropdownSlab[] = await res.json();
       setAllSlabs(data);
 
-      // auto select first slab if none selected
+      // auto select first listing if none selected
       setListingID(prev => {
         if (prev !== '') return prev;
-        return data.length > 0 ? data[0].slabID : '';
+        return data.length > 0 ? data[0].listingID : '';
       });
-    }
-
-    catch (err) {
+    } catch (err) {
       console.error('Failed to load slabs for dropdown', err);
       setError('Failed to load graded listings. Try reloading.');
-    }
-
-    finally {
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -47,8 +43,8 @@ export default function GradeSlab() {
   }, [loadSlabs]);
 
   const selectedSlab = useMemo(() => {
-    if (listingID === '') return null;
-    return allSlabs.find(s => s.slabID === listingID) ?? null;
+    if (typeof listingID !== 'number') return null;
+    return allSlabs.find(s => s.listingID === listingID) ?? null;
   }, [listingID, allSlabs]);
 
   return (
@@ -88,8 +84,8 @@ export default function GradeSlab() {
           >
             <option value="">Select a graded listing…</option>
             {allSlabs.map(s => (
-              <option key={s.slabID} value={s.slabID}>
-                Listing #{s.slabID} ({s.companyName} {s.grade})
+              <option key={s.slabID} value={s.listingID}>
+                Listing #{s.listingID} (Slab #{s.slabID} – {s.companyName} {s.grade})
               </option>
             ))}
           </select>
@@ -121,7 +117,10 @@ export default function GradeSlab() {
       ) : (
         <div className="card space-y-1">
           <p>
-            <b>Slab ID (Listing ID):</b> {selectedSlab.slabID}
+            <b>Listing ID:</b> {selectedSlab.listingID}
+          </p>
+          <p>
+            <b>Slab ID:</b> {selectedSlab.slabID}
           </p>
           <p>
             <b>Company:</b> {selectedSlab.companyName} (scale{' '}
@@ -135,3 +134,4 @@ export default function GradeSlab() {
     </section>
   );
 }
+
