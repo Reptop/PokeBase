@@ -593,19 +593,8 @@ app.get('/api/grade-slabs/for-dropdown', async (req, res) => {
     const [resultSets] = await db.query(
       'CALL sp_select_graded_listings_for_dropdown()'
     );
-
     const rows = unwrapCallResult(resultSets);
-
-    // Normalize the payload shape for the front-end
-    const slabs = rows.map(row => ({
-      listingID: row.listingID,
-      slabID: row.slabID,
-      grade: row.grade,
-      companyName: row.companyName,
-      companyScale: row.companyScale,
-    }));
-
-    res.json(slabs);
+    res.json(rows);
   } catch (err) {
     logDbError('GET /api/grade-slabs/for-dropdown failed', err);
     res.status(500).json({ error: 'Failed to load graded listings' });
