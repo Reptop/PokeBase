@@ -14,7 +14,8 @@ export default function Index() {
       <h1 className="section-title">Project Index</h1>
 
       <p className="section-subtitle">
-        Front-end pages for CRUD. Currently in the process of wiring the backend to MySQL!
+        Front end tables for managing a trading card marketplace database: customers, cards, listings, grading companies, grade slabs, orders, and order items.
+        Everything is wired to mysql stored procedures for real CRUD operations (wow!)
       </p>
 
       <p className="section-subtitle">
