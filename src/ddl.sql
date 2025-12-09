@@ -28,7 +28,7 @@ BEGIN
         email VARCHAR(255) NOT NULL UNIQUE,
         name VARCHAR(200) NOT NULL,
         phone VARCHAR(32) NOT NULL,
-        shippingAddress VARCHAR(255) NOT NULL,
+        shippingAddress VARCHAR(255) NOT NULL
     );
 
     -- Cards (no FKs)
