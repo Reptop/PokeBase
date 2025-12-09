@@ -105,25 +105,35 @@ app.put('/api/grading-companies/:id', async (req, res) => {
 
 });
 
-
-// DELETE grading company → CALL sp_delete_grading_company(?)
+// DELETE /api/grading-companies/:id → delete grading company
 app.delete('/api/grading-companies/:id', async (req, res) => {
   const id = Number(req.params.id);
 
-  // invalid input check
-  if (!Number.isInteger(id))
-    return res.status(400).json({ error: 'Invalid companyID' });
+  if (!Number.isInteger(id) || id <= 0)
+    return res.status(400).json({ error: 'Invalid grading company ID' });
 
   try {
-    await db.query('CALL sp_delete_grading_company(?)', [id]);
-    res.status(204).send();
-  }
+    console.log('DELETE /api/grading-companies/:id → companyID =', id);
+    const [result] = await db.query('CALL sp_delete_grading_company(?)', [id]);
+    console.log('sp_delete_grading_company result:', JSON.stringify(result));
+    return res.status(204).send();
+  } catch (err) {
+    logDbError('DELETE grading company failed', err);
 
-  catch (err) {
-    console.error('DELETE grading company failed:', err);
-    res.status(500).json({ error: 'Delete failed' });
+    // If GradeSlabs (or other tables) still reference this company
+    if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.errno === 1451) {
+      return res.status(409).json({
+        error:
+          'Cannot delete grading company because one or more GradeSlabs still reference it. ' +
+          'Delete those slabs first or enable ON DELETE CASCADE on GradeSlabs.companyID.',
+      });
+    }
+
+    return res.status(500).json({ error: 'Failed to delete grading company' });
   }
 });
+
+
 
 // CREATE grading company → CALL sp_create_grading_company(?,?,?)
 app.post('/api/grading-companies', async (req, res) => {
@@ -237,24 +247,36 @@ app.put('/api/customers/:id', async (req, res) => {
   }
 });
 
-// DELETE customer → CALL sp_delete_customer(?)
+// DELETE /api/customers/:id → delete customer
 app.delete('/api/customers/:id', async (req, res) => {
   const id = Number(req.params.id);
 
-  if (!Number.isInteger(id))
-    return res.status(400).json({ error: 'Invalid customerID' });
+  if (!Number.isInteger(id) || id <= 0)
+    return res.status(400).json({ error: 'Invalid customer ID' });
 
   try {
-    await db.query('CALL sp_delete_customer(?)', [id]);
-    res.status(204).send();
+    console.log('DELETE /api/customers/:id → customerID =', id);
+    const [result] = await db.query('CALL sp_delete_customer(?)', [id]);
+    console.log('sp_delete_customer result:', JSON.stringify(result));
+    return res.status(204).send();
   }
 
   catch (err) {
-    console.error('DELETE customer failed:', err);
-    res.status(500).json({ error: 'Failed to delete customer' });
-  }
+    logDbError('DELETE customer failed', err);
 
+    // Orders.customerID FK -> Customers.customerID
+    if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.errno === 1451) {
+      return res.status(409).json({
+        error:
+          'Cannot delete customer because one or more Orders still reference them. ' +
+          'Either delete those orders first or make Orders.customerID ON DELETE CASCADE.',
+      });
+    }
+
+    return res.status(500).json({ error: 'Failed to delete customer' });
+  }
 });
+
 
 // ================= CARDS =================
 
@@ -334,7 +356,7 @@ app.put('/api/cards/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/cards/:id → delete a card (and children via CASCADE if configured)
+// DELETE /api/cards/:id → delete a card AND children via CASCADE
 app.delete('/api/cards/:id', async (req, res) => {
   const id = Number(req.params.id);
 
@@ -373,7 +395,6 @@ app.delete('/api/cards/:id', async (req, res) => {
     return res.status(500).json({ error: 'Failed to delete card' });
   }
 });
-
 
 // ================= Listings =================
 
@@ -518,6 +539,7 @@ app.put('/api/listings/:id', async (req, res) => {
   }
 });
 
+
 // DELETE /api/listings/:id → delete listing
 app.delete('/api/listings/:id', async (req, res) => {
   const id = Number(req.params.id);
@@ -527,24 +549,29 @@ app.delete('/api/listings/:id', async (req, res) => {
   }
 
   try {
-    await db.query('DELETE FROM Listings WHERE listingID = ?', [id]);
-    res.status(204).send();
-  }
+    console.log('DELETE /api/listings/:id → listingID =', id);
+    const [result] = await db.query(
+      'DELETE FROM Listings WHERE listingID = ?',
+      [id]
+    );
+    console.log('DELETE FROM Listings result:', JSON.stringify(result));
+    return res.status(204).send();
+  } catch (err) {
+    logDbError('DELETE listing failed', err);
 
-  catch (err) {
-    console.error('DELETE /api/listings/:id failed:', err);
-
-    // If Listings.listingID is referenced by OrderItems.listingID, you may hit FK errors:
+    // If something else references Listings.listingID without CASCADE
     if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.errno === 1451) {
       return res.status(409).json({
         error:
-          'Cannot delete this listing because it has related order items! Delete those order items first (or use ON DELETE CASCADE).',
+          'Cannot delete listing because other records still reference it (e.g., OrderItems or GradeSlabs). ' +
+          'Ensure those FKs use ON DELETE CASCADE or delete children first.',
       });
     }
 
-    res.status(500).json({ error: 'Failed to delete listing' });
+    return res.status(500).json({ error: 'Failed to delete listing' });
   }
 });
+
 
 // ================= ORDER ITEMS =================
 
@@ -714,17 +741,27 @@ app.delete('/api/order-items/:orderID/:listingID', async (req, res) => {
   }
 
   try {
-    await db.query('CALL sp_delete_order_item(?, ?)', [orderID, listingID]);
-    res.status(204).send();
+    console.log(
+      'DELETE /api/order-items/:orderID/:listingID →',
+      { orderID, listingID }
+    );
+    const [result] = await db.query(
+      'CALL sp_delete_order_item(?, ?)',
+      [orderID, listingID]
+    );
 
     await recalcOrderTotals(orderID);
+
+    console.log('sp_delete_order_item result:', JSON.stringify(result));
+    return res.status(204).send();
   }
 
   catch (err) {
-    console.error('DELETE /api/order-items/:orderID/:listingID failed:', err);
-    res.status(500).json({ error: 'Failed to delete order item' });
+    logDbError('DELETE order item failed', err);
+    return res.status(500).json({ error: 'Failed to delete order item' });
   }
 });
+
 
 // ================= ORDERS =================
 
@@ -898,7 +935,7 @@ app.put('/api/orders/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/orders/:id → delete order (uses sp_delete_order)
+// DELETE /api/orders/:id → delete order
 app.delete('/api/orders/:id', async (req, res) => {
   const orderID = Number(req.params.id);
 
@@ -906,17 +943,25 @@ app.delete('/api/orders/:id', async (req, res) => {
     return res.status(400).json({ error: 'Invalid orderID' });
 
   try {
-    await db.query('CALL sp_delete_order(?)', [orderID]);
-    // OrderItems have ON DELETE CASCADE on orderID, so they’ll be removed automatically
-    res.status(204).send();
-  }
+    console.log('DELETE /api/orders/:id → orderID =', orderID);
+    const [result] = await db.query('CALL sp_delete_order(?)', [orderID]);
+    console.log('sp_delete_order result:', JSON.stringify(result));
+    return res.status(204).send();
+  } catch (err) {
+    logDbError('DELETE order failed', err);
 
-  catch (err) {
-    console.error('DELETE /api/orders/:id failed:', err);
-    res.status(500).json({ error: 'Failed to delete order' });
+    // If OrderItems.orderID FK isn’t ON DELETE CASCADE
+    if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.errno === 1451) {
+      return res.status(409).json({
+        error:
+          'Cannot delete order because one or more OrderItems still reference it. ' +
+          'Either delete those order items first or use ON DELETE CASCADE on OrderItems.orderID.',
+      });
+    }
+
+    return res.status(500).json({ error: 'Failed to delete order' });
   }
 });
-
 
 
 // ----------------- STATIC REACT BUILD -----------------
