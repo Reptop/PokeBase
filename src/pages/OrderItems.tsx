@@ -1,11 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
 import Table from '../components/Table';
-import { api } from '../lib/api.mock';
-import type { OrderItem } from '../types';
+import type {
+  OrderItem,
+  Listing,
+  Order,
+  Card,
+  Customer,
+} from '../types';
 
-type Row = Awaited<ReturnType<typeof api.listOrderItems>>[number];
-type ListingRow = Awaited<ReturnType<typeof api.listListings>>[number];
-type OrderRow = Awaited<ReturnType<typeof api.listOrders>>[number];
+type ListingRow = Listing & {
+  card?: Card | null;
+};
+
+type OrderRow = Order & {
+  customer?: Customer | null;
+};
+
+type Row = OrderItem & {
+  listing?: ListingRow | null;
+};
 
 type FormState = {
   listingID: number | '';
@@ -14,10 +27,8 @@ type FormState = {
 };
 
 export default function OrderItems() {
-
-  // These useStates hook together and manage all data for this page
-  const [orderID, setOrderID] = useState<number | ''>('');        // currently selected order
-  const [orders, setOrders] = useState<OrderRow[]>([]);           // all orders
+  const [orderID, setOrderID] = useState<number | ''>('');        // selected order
+  const [orders, setOrders] = useState<OrderRow[]>([]);           // all orders (+ customer)
   const [rows, setRows] = useState<Row[]>([]);                    // order items for current order
   const [allListings, setAllListings] = useState<ListingRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +39,8 @@ export default function OrderItems() {
     quantity: '',
     unitPrice: '',
   });
+
+  // ---------- Table columns ----------
 
   const cols = useMemo(
     () => [
@@ -45,14 +58,18 @@ export default function OrderItems() {
         header: 'Unit Price',
         className: 'text-right w-[140px]',
         render: (r: Row) => (
-          <span className="tabular-nums">${r.unitPrice.toFixed(2)}</span>
+          <span className="tabular-nums">
+            ${Number(r.unitPrice)}
+          </span>
         ),
       },
       {
         key: 'listing',
         header: 'Listing Info',
         render: (r: Row) =>
-          r.listing ? `${r.listing.type} • $${r.listing.price.toFixed(2)}` : '—',
+          r.listing
+            ? `${r.listing.type} • $${Number(r.listing.price)}`
+            : '—',
       },
       {
         key: 'actions',
@@ -80,48 +97,127 @@ export default function OrderItems() {
     []
   );
 
-  // --- Data loaders -------------------------------------------------------
+  // ---------- Data loaders ----------
 
-  async function loadOrderItems(currentOrderID: number) {
+  async function loadOrderItemsForOrder(currentOrderID: number) {
     setLoading(true);
-    const items = await api.listOrderItems(currentOrderID);
-    setRows(items);
-    setLoading(false);
-  }
-
-  async function loadListings() {
-    const listings = await api.listListings();
-    setAllListings(listings);
-  }
-
-  async function loadOrders() {
-    const list = await api.listOrders();
-    setOrders(list);
-
-    // If no order is selected yet, or the selected one no longer exists,
-    // default to the latest order (last in the array).
-    if (list.length > 0) {
-      const exists = orderID && list.some(o => o.orderID === orderID);
-      if (!exists) {
-        const latest = list[list.length - 1];
-        setOrderID(latest.orderID);
-        await loadOrderItems(latest.orderID);
+    try {
+      const res = await fetch('/api/order-items');
+      if (!res.ok) {
+        console.error('Failed to load order items', await res.text());
+        setRows([]);
         return;
       }
+      const allItems: OrderItem[] = await res.json();
+
+      // Filter to current orderID
+      const itemsForOrder = allItems.filter(
+        oi => oi.orderID === currentOrderID
+      );
+
+      // Attach listing info
+      const joined: Row[] = itemsForOrder.map(oi => ({
+        ...oi,
+        listing:
+          allListings.find(l => l.listingID === oi.listingID) ?? null,
+      }));
+
+      setRows(joined);
     }
 
-    // If we already have a valid selected order, just reload its items
-    if (orderID && list.some(o => o.orderID === orderID)) {
-      await loadOrderItems(orderID);
-    }
-
-    else {
+    catch (err) {
+      console.error('Error loading order items', err);
       setRows([]);
+    }
+
+    finally {
       setLoading(false);
     }
   }
 
-  // On mount: load orders & listings
+  async function loadListings() {
+    try {
+      const [listingsRes, cardsRes] = await Promise.all([
+        fetch('/api/listings'),
+        fetch('/api/cards'),
+      ]);
+
+      if (!listingsRes.ok) {
+        console.error('Failed to load listings', await listingsRes.text());
+        return;
+      }
+      if (!cardsRes.ok) {
+        console.error('Failed to load cards', await cardsRes.text());
+        return;
+      }
+
+      const listings: Listing[] = await listingsRes.json();
+      const cards: Card[] = await cardsRes.json();
+
+      const listingsWithCards: ListingRow[] = listings.map(l => ({
+        ...l,
+        card: cards.find(c => c.cardID === l.cardID) ?? null,
+      }));
+
+      setAllListings(listingsWithCards);
+    } catch (err) {
+      console.error('Error loading listings/cards', err);
+    }
+  }
+
+  async function loadOrders() {
+    try {
+      const [ordersRes, customersRes] = await Promise.all([
+        fetch('/api/orders'),
+        fetch('/api/customers'),
+      ]);
+
+      if (!ordersRes.ok) {
+        console.error('Failed to load orders', await ordersRes.text());
+        return;
+      }
+      if (!customersRes.ok) {
+        console.error('Failed to load customers', await customersRes.text());
+        return;
+      }
+
+      const ordersRaw: Order[] = await ordersRes.json();
+      const customers: Customer[] = await customersRes.json();
+
+      const ordersWithCustomers: OrderRow[] = ordersRaw.map(o => ({
+        ...o,
+        customer:
+          customers.find(c => c.customerID === o.customerID) ?? null,
+      }));
+
+      setOrders(ordersWithCustomers);
+
+      // choose default order if needed
+      if (ordersWithCustomers.length > 0) {
+        const exists =
+          orderID &&
+          ordersWithCustomers.some(o => o.orderID === orderID);
+        if (!exists) {
+          const latest = ordersWithCustomers[ordersWithCustomers.length - 1];
+          setOrderID(latest.orderID);
+          await loadOrderItemsForOrder(latest.orderID);
+          return;
+        }
+      }
+
+      if (orderID && ordersWithCustomers.some(o => o.orderID === orderID)) {
+        await loadOrderItemsForOrder(orderID as number);
+      } else {
+        setRows([]);
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Error loading orders/customers', err);
+      setLoading(false);
+    }
+  }
+
+  // On mount: load listings first, then orders (which may load items)
   useEffect(() => {
     (async () => {
       await loadListings();
@@ -133,13 +229,14 @@ export default function OrderItems() {
   // When orderID changes (via dropdown), load that order's items
   useEffect(() => {
     if (orderID) {
-      loadOrderItems(orderID);
+      loadOrderItemsForOrder(orderID as number);
     } else {
       setRows([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderID]);
 
-  // --- Form helpers -------------------------------------------------------
+  // ---------- Form helpers ----------
 
   function resetForm() {
     setEditingListingID(null);
@@ -155,7 +252,7 @@ export default function OrderItems() {
     setForm({
       listingID: row.listingID,
       quantity: row.quantity,
-      unitPrice: row.unitPrice,
+      unitPrice: Number(row.unitPrice),
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -169,13 +266,15 @@ export default function OrderItems() {
       if (value !== '' && (unitPrice === '' || Number(unitPrice) === 0)) {
         const listing = allListings.find(l => l.listingID === listingID);
         if (listing) {
-          unitPrice = listing.price;
+          unitPrice = Number(listing.price);
         }
       }
 
       return { ...prev, listingID, unitPrice };
     });
   }
+
+  // ---------- Submit (create/update) ----------
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -190,36 +289,87 @@ export default function OrderItems() {
     }
 
     const payload: OrderItem = {
-      orderID,
+      orderID: orderID as number,
       listingID: Number(form.listingID),
       quantity: Number(form.quantity),
       unitPrice: Number(form.unitPrice),
     };
 
-    if (editingListingID !== null) {
-      await api.updateOrderItem(orderID, editingListingID, payload);
-    }
+    try {
+      if (editingListingID !== null) {
+        // UPDATE: PUT /api/order-items/:orderID/:listingID
+        const res = await fetch(
+          `/api/order-items/${orderID}/${editingListingID}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              quantity: payload.quantity,
+              unitPrice: payload.unitPrice,
+            }),
+          }
+        );
 
-    else {
-      await api.createOrderItem(payload);
-    }
+        if (!res.ok) {
+          console.error('Update order item failed', await res.text());
+          alert('Update failed – check server logs.');
+          return;
+        }
+      } else {
+        // CREATE: POST /api/order-items
+        const res = await fetch('/api/order-items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
 
-    resetForm();
-    await loadOrderItems(orderID);
+        if (!res.ok) {
+          console.error('Create order item failed', await res.text());
+          alert('Create failed – check server logs.');
+          return;
+        }
+      }
+
+      resetForm();
+      await loadOrderItemsForOrder(orderID as number);
+    } catch (err) {
+      console.error('Submit error (order items)', err);
+      alert('Unexpected error – check console/server logs.');
+    }
   }
+
+  // ---------- Delete ----------
 
   async function onDelete(listingID: number) {
-    if (!orderID)
+    if (!orderID) return;
+
+    if (
+      !confirm(
+        `Remove listing #${listingID} from order #${orderID}?`
+      )
+    )
       return;
 
-    if (!confirm(`Remove listing #${listingID} from order #${orderID}?`))
-      return;
+    try {
+      const res = await fetch(
+        `/api/order-items/${orderID}/${listingID}`,
+        { method: 'DELETE' }
+      );
 
-    await api.deleteOrderItem(orderID, listingID);
-    await loadOrderItems(orderID);
+      if (!res.ok) {
+        console.error('Delete order item failed', await res.text());
+        alert('Delete failed – check server logs.');
+        return;
+      }
+
+      await loadOrderItemsForOrder(orderID as number);
+    } catch (err) {
+      console.error('Delete error (order items)', err);
+      alert('Unexpected error – check console/server logs.');
+    }
   }
 
-  // --- JSX ---------------------------------------------------------------
+  // ---------- JSX ----------
 
   return (
     <section className="space-y-6">
@@ -233,13 +383,19 @@ export default function OrderItems() {
             className="input"
             value={orderID}
             onChange={e =>
-              setOrderID(e.target.value === '' ? '' : Number(e.target.value))
+              setOrderID(
+                e.target.value === '' ? '' : Number(e.target.value)
+              )
             }
           >
             {orders.length === 0 && <option value="">No orders yet</option>}
             {orders.map(o => (
               <option key={o.orderID} value={o.orderID}>
-                #{o.orderID} – {o.customer ? o.customer.name : `Customer ${o.customerID}`} – {o.status}
+                #{o.orderID} –{' '}
+                {o.customer
+                  ? o.customer.name
+                  : `Customer ${o.customerID}`}{' '}
+                – {o.status}
               </option>
             ))}
           </select>
@@ -272,8 +428,9 @@ export default function OrderItems() {
               <option value="">Select listing…</option>
               {allListings.map(l => (
                 <option key={l.listingID} value={l.listingID}>
-                  #{l.listingID} – {l.card ? l.card.name : 'Unknown'} (
-                  {l.type}, ${l.price.toFixed(2)})
+                  #{l.listingID} –{' '}
+                  {l.card ? l.card.name : 'Unknown'} (
+                  {l.type}, ${Number(l.price)})
                 </option>
               ))}
             </select>

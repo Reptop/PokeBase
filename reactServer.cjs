@@ -661,6 +661,196 @@ app.delete('/api/order-items/:orderID/:listingID', async (req, res) => {
   }
 });
 
+// ================= ORDERS =================
+
+// GET /api/orders → list all orders
+app.get('/api/orders', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT
+         orderID,
+         customerID,
+         orderDate,
+         status,
+         subtotal,
+         tax,
+         total
+       FROM Orders
+       ORDER BY orderID`
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /api/orders failed:', err);
+    res.status(500).json({ error: 'Failed to load orders' });
+  }
+});
+
+// Helper: normalize/validate an order payload
+function normalizeOrderBody(body) {
+  const {
+    customerID,
+    orderDate,
+    status,
+    subtotal,
+    tax,
+    total,
+  } = body || {};
+
+  const customerIdNum = Number(customerID);
+  const subtotalNum = Number(subtotal);
+  const taxNum = Number(tax);
+  const totalNum = Number(total);
+
+  const validStatuses = ['pending', 'paid', 'shipped', 'canceled', 'refunded'];
+
+  if (!Number.isInteger(customerIdNum) || customerIdNum <= 0) {
+    return { error: 'Valid customerID is required' };
+  }
+
+  if (!validStatuses.includes(status)) {
+    return {
+      error: `status must be one of: ${validStatuses.join(', ')}`,
+    };
+  }
+
+  if (!Number.isFinite(subtotalNum) || subtotalNum < 0) {
+    return { error: 'subtotal must be a non-negative number' };
+  }
+
+  if (!Number.isFinite(taxNum) || taxNum < 0) {
+    return { error: 'tax must be a non-negative number' };
+  }
+
+  if (!Number.isFinite(totalNum) || totalNum < 0) {
+    return { error: 'total must be a non-negative number' };
+  }
+
+  // orderDate: if missing, default to "now" in MySQL DATETIME format
+  const orderDateValue =
+    orderDate && typeof orderDate === 'string'
+      ? orderDate
+      : new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+  return {
+    customerIdNum,
+    orderDateValue,
+    status,
+    subtotalNum,
+    taxNum,
+    totalNum,
+  };
+}
+
+// POST /api/orders → create new order (uses sp_insert_order)
+app.post('/api/orders', async (req, res) => {
+  const normalized = normalizeOrderBody(req.body);
+
+  if ('error' in normalized)
+    return res.status(400).json({ error: normalized.error });
+
+  const {
+    customerIdNum,
+    orderDateValue,
+    status,
+    subtotalNum,
+    taxNum,
+    totalNum,
+  } = normalized;
+
+  try {
+    await db.query('CALL sp_insert_order(?,?,?,?,?,?)', [
+      customerIdNum,
+      orderDateValue,
+      status,
+      subtotalNum,
+      taxNum,
+      totalNum,
+    ]);
+
+    // We’re not using insertId here; frontend can just refetch /api/orders
+    res.status(201).json({ ok: true });
+  }
+
+  catch (err) {
+    console.error('POST /api/orders failed:', err);
+
+    // Foreign-key failure for customerID
+    if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.errno === 1452) {
+      return res.status(409).json({
+        error: 'customerID does not exist (foreign key constraint).',
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to create order' });
+  }
+});
+
+// PUT /api/orders/:id → update existing order (uses sp_update_order)
+app.put('/api/orders/:id', async (req, res) => {
+  const orderID = Number(req.params.id);
+
+  if (!Number.isInteger(orderID) || orderID <= 0)
+    return res.status(400).json({ error: 'Invalid orderID' });
+
+  const normalized = normalizeOrderBody(req.body);
+
+  if ('error' in normalized)
+    return res.status(400).json({ error: normalized.error });
+
+  const {
+    customerIdNum,
+    orderDateValue,
+    status,
+    subtotalNum,
+    taxNum,
+    totalNum,
+  } = normalized;
+
+  try {
+    await db.query('CALL sp_update_order(?,?,?,?,?,?,?)', [
+      orderID,
+      customerIdNum,
+      orderDateValue,
+      status,
+      subtotalNum,
+      taxNum,
+      totalNum,
+    ]);
+
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('PUT /api/orders/:id failed:', err);
+
+    if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.errno === 1452) {
+      return res.status(409).json({
+        error: 'customerID does not exist (foreign key constraint).',
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to update order' });
+  }
+});
+
+// DELETE /api/orders/:id → delete order (uses sp_delete_order)
+app.delete('/api/orders/:id', async (req, res) => {
+  const orderID = Number(req.params.id);
+
+  if (!Number.isInteger(orderID) || orderID <= 0)
+    return res.status(400).json({ error: 'Invalid orderID' });
+
+  try {
+    await db.query('CALL sp_delete_order(?)', [orderID]);
+    // OrderItems have ON DELETE CASCADE on orderID, so they’ll be removed automatically
+    res.status(204).send();
+  }
+
+  catch (err) {
+    console.error('DELETE /api/orders/:id failed:', err);
+    res.status(500).json({ error: 'Failed to delete order' });
+  }
+});
+
+
 
 // ----------------- STATIC REACT BUILD -----------------
 
