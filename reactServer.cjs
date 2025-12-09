@@ -24,6 +24,36 @@ app.post('/api/reset', async (req, res) => {
 
 });
 
+// ================= Helpers =================
+
+async function recalcOrderTotals(orderID) {
+  try {
+    // Compute subtotal from OrderItems
+    const [rows] = await db.query(
+      'SELECT COALESCE(SUM(quantity * unitPrice), 0) AS subtotal FROM OrderItems WHERE orderID = ?',
+      [orderID]
+    );
+
+    const subtotal = Number(rows[0]?.subtotal ?? 0);
+
+    // For now: tax = 0, total = subtotal
+    const tax = 0;
+    const total = subtotal + tax;
+
+    await db.query(
+      'UPDATE Orders SET subtotal = ?, tax = ?, total = ? WHERE orderID = ?',
+      [subtotal, tax, total, orderID]
+    );
+
+    console.log(
+      `Recalculated totals for order ${orderID}: subtotal=${subtotal}, tax=${tax}, total=${total}`
+    );
+  } catch (err) {
+    console.error('recalcOrderTotals failed for order', orderID, err);
+  }
+}
+
+
 // ================= GRADING COMPANIES =================
 
 // READ grading companies
@@ -510,7 +540,9 @@ app.get('/api/order-items', async (req, res) => {
     const [resultSets] = await db.query('CALL sp_select_all_order_items()');
     const rows = unwrapCallResult(resultSets);
     res.json(rows);
-  } catch (err) {
+  }
+
+  catch (err) {
     console.error('GET /api/order-items failed:', err);
     res.status(500).json({ error: 'Failed to load order items' });
   }
@@ -580,7 +612,9 @@ app.post('/api/order-items', async (req, res) => {
       [orderIdNum, listingIdNum, qtyNum, priceNum]
     );
 
-    // Composite key is known from input; nothing auto-generated
+    // Recalculate order totals
+    await recalcOrderTotals(orderIdNum);
+
     res.status(201).json({
       ok: true,
       orderID: orderIdNum,
@@ -635,8 +669,13 @@ app.put('/api/order-items/:orderID/:listingID', async (req, res) => {
       [orderID, listingID, qtyNum, priceNum]
     );
 
+    // Recalculate order totals
+    await recalcOrderTotals(orderID);
+
     res.status(200).json({ ok: true });
-  } catch (err) {
+  }
+
+  catch (err) {
     console.error('PUT /api/order-items/:orderID/:listingID failed:', err);
     res.status(500).json({ error: 'Failed to update order item' });
   }
@@ -655,7 +694,11 @@ app.delete('/api/order-items/:orderID/:listingID', async (req, res) => {
   try {
     await db.query('CALL sp_delete_order_item(?, ?)', [orderID, listingID]);
     res.status(204).send();
-  } catch (err) {
+
+    await recalcOrderTotals(orderID);
+  }
+
+  catch (err) {
     console.error('DELETE /api/order-items/:orderID/:listingID failed:', err);
     res.status(500).json({ error: 'Failed to delete order item' });
   }
