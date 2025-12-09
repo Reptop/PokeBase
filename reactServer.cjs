@@ -477,7 +477,9 @@ app.delete('/api/listings/:id', async (req, res) => {
   try {
     await db.query('DELETE FROM Listings WHERE listingID = ?', [id]);
     res.status(204).send();
-  } catch (err) {
+  }
+
+  catch (err) {
     console.error('DELETE /api/listings/:id failed:', err);
 
     // If Listings.listingID is referenced by OrderItems.listingID, you may hit FK errors:
@@ -489,6 +491,173 @@ app.delete('/api/listings/:id', async (req, res) => {
     }
 
     res.status(500).json({ error: 'Failed to delete listing' });
+  }
+});
+
+// ================= ORDER ITEMS =================
+
+// helper to unwrap CALL results (since CALL returns [ [rows], extra ])
+function unwrapCallResult(resultSets) {
+  if (Array.isArray(resultSets) && Array.isArray(resultSets[0])) {
+    return resultSets[0];
+  }
+  return resultSets;
+}
+
+// GET /api/order-items → list all order items
+app.get('/api/order-items', async (req, res) => {
+  try {
+    const [resultSets] = await db.query('CALL sp_select_all_order_items()');
+    const rows = unwrapCallResult(resultSets);
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /api/order-items failed:', err);
+    res.status(500).json({ error: 'Failed to load order items' });
+  }
+});
+
+// GET /api/order-items/:orderID/:listingID → get one order item
+app.get('/api/order-items/:orderID/:listingID', async (req, res) => {
+  const orderID = Number(req.params.orderID);
+  const listingID = Number(req.params.listingID);
+
+  if (!Number.isInteger(orderID) || orderID <= 0 ||
+    !Number.isInteger(listingID) || listingID <= 0) {
+    return res.status(400).json({ error: 'Invalid orderID or listingID' });
+  }
+
+  try {
+    const [resultSets] = await db.query(
+      'CALL sp_select_order_item(?, ?)',
+      [orderID, listingID]
+    );
+    const rows = unwrapCallResult(resultSets);
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: 'Order item not found' });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('GET /api/order-items/:orderID/:listingID failed:', err);
+    res.status(500).json({ error: 'Failed to load order item' });
+  }
+});
+
+// POST /api/order-items → create new order item
+app.post('/api/order-items', async (req, res) => {
+  const { orderID, listingID, quantity, unitPrice } = req.body || {};
+
+  const orderIdNum = Number(orderID);
+  const listingIdNum = Number(listingID);
+  const qtyNum = Number(quantity);
+  const priceNum = Number(unitPrice);
+
+  // Basic validation
+  if (!Number.isInteger(orderIdNum) || orderIdNum <= 0) {
+    return res.status(400).json({ error: 'Valid orderID is required' });
+  }
+
+  if (!Number.isInteger(listingIdNum) || listingIdNum <= 0) {
+    return res.status(400).json({ error: 'Valid listingID is required' });
+  }
+
+  if (!Number.isInteger(qtyNum) || qtyNum <= 0) {
+    return res
+      .status(400)
+      .json({ error: 'quantity must be a positive integer' });
+  }
+
+  if (!Number.isFinite(priceNum) || priceNum < 0) {
+    return res
+      .status(400)
+      .json({ error: 'unitPrice must be a non-negative number' });
+  }
+
+  try {
+    await db.query(
+      'CALL sp_insert_order_item(?, ?, ?, ?)',
+      [orderIdNum, listingIdNum, qtyNum, priceNum]
+    );
+
+    // Composite key is known from input; nothing auto-generated
+    res.status(201).json({
+      ok: true,
+      orderID: orderIdNum,
+      listingID: listingIdNum,
+    });
+  }
+
+  catch (err) {
+    console.error('POST /api/order-items failed:', err);
+
+    // FK failures: invalid orderID or listingID
+    if (err.code === 'ER_NO_REFERENCED_ROW_2' || err.errno === 1452) {
+      return res.status(409).json({
+        error:
+          'orderID or listingID does not exist (foreign key constraint).',
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to create order item' });
+  }
+});
+
+// PUT /api/order-items/:orderID/:listingID → update existing order item
+app.put('/api/order-items/:orderID/:listingID', async (req, res) => {
+  const orderID = Number(req.params.orderID);
+  const listingID = Number(req.params.listingID);
+  const { quantity, unitPrice } = req.body || {};
+
+  if (!Number.isInteger(orderID) || orderID <= 0 ||
+    !Number.isInteger(listingID) || listingID <= 0) {
+    return res.status(400).json({ error: 'Invalid orderID or listingID' });
+  }
+
+  const qtyNum = Number(quantity);
+  const priceNum = Number(unitPrice);
+
+  if (!Number.isInteger(qtyNum) || qtyNum <= 0) {
+    return res
+      .status(400)
+      .json({ error: 'quantity must be a positive integer' });
+  }
+
+  if (!Number.isFinite(priceNum) || priceNum < 0) {
+    return res
+      .status(400)
+      .json({ error: 'unitPrice must be a non-negative number' });
+  }
+
+  try {
+    await db.query(
+      'CALL sp_update_order_item(?, ?, ?, ?)',
+      [orderID, listingID, qtyNum, priceNum]
+    );
+
+    res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error('PUT /api/order-items/:orderID/:listingID failed:', err);
+    res.status(500).json({ error: 'Failed to update order item' });
+  }
+});
+
+// DELETE /api/order-items/:orderID/:listingID → delete order item
+app.delete('/api/order-items/:orderID/:listingID', async (req, res) => {
+  const orderID = Number(req.params.orderID);
+  const listingID = Number(req.params.listingID);
+
+  if (!Number.isInteger(orderID) || orderID <= 0 ||
+    !Number.isInteger(listingID) || listingID <= 0) {
+    return res.status(400).json({ error: 'Invalid orderID or listingID' });
+  }
+
+  try {
+    await db.query('CALL sp_delete_order_item(?, ?)', [orderID, listingID]);
+    res.status(204).send();
+  } catch (err) {
+    console.error('DELETE /api/order-items/:orderID/:listingID failed:', err);
+    res.status(500).json({ error: 'Failed to delete order item' });
   }
 });
 

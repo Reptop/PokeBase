@@ -53,10 +53,12 @@ export default function Listings() {
         console.error('Failed to load listings', await listingsRes.text());
         return;
       }
+
       if (!cardsRes.ok) {
         console.error('Failed to load cards', await cardsRes.text());
         return;
       }
+
       if (!companiesRes.ok) {
         console.error('Failed to load grading companies', await companiesRes.text());
         return;
@@ -75,9 +77,13 @@ export default function Listings() {
       setRows(joined);
       setCards(cardsData);
       setCompanies(companiesData);
-    } catch (err) {
+    }
+
+    catch (err) {
       console.error('Error refreshing listings page', err);
-    } finally {
+    }
+
+    finally {
       setLoading(false);
     }
   }, []);
@@ -299,6 +305,7 @@ export default function Listings() {
           <span className="tabular-nums">{r.quantityAvailable}</span>
         ),
       },
+
       { key: 'status', header: 'Status' },
       {
         key: 'card',
@@ -306,6 +313,7 @@ export default function Listings() {
         render: (r: Row) =>
           r.card ? `${r.card.name} (${r.card.setName})` : '—',
       },
+
       {
         key: 'actions',
         header: 'Actions',
