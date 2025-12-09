@@ -585,6 +585,22 @@ app.delete('/api/listings/:id', async (req, res) => {
 });
 
 
+// ================= GRADE SLABS =================
+
+// GET /api/grade-slabs/for-dropdown -> list graded listings for dropdown
+app.get('/api/grade-slabs/for-dropdown', async (req, res) => {
+  try {
+    const [resultSets] = await db.query(
+      'CALL sp_select_graded_listings_for_dropdown()'
+    );
+    const rows = unwrapCallResult(resultSets);
+    res.json(rows);
+  } catch (err) {
+    logDbError('GET /api/grade-slabs/for-dropdown failed', err);
+    res.status(500).json({ error: 'Failed to load graded listings' });
+  }
+});
+
 // ================= ORDER ITEMS =================
 
 // helper to unwrap CALL results (since CALL returns [ [rows], extra ])

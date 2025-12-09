@@ -1,30 +1,29 @@
-import { useEffect, useState } from 'react';
-import { api } from '../lib/api.mock';
-import type { GradeSlab as GradeSlabType, GradingCompany } from '../types';
+import { useEffect, useMemo, useState } from 'react';
 
-type SlabDetail = GradeSlabType & { company: GradingCompany | null };
+type DropdownSlab = {
+  slabID: number;
+  grade: number;
+  companyName: string;
+  companyScale: '10' | '100';
+};
 
 export default function GradeSlab() {
   const [listingID, setListingID] = useState<number | ''>(3);
-  const [slab, setSlab] = useState<SlabDetail | null>(null);
-  const [allSlabs, setAllSlabs] = useState<SlabDetail[]>([]);
+  const [allSlabs, setAllSlabs] = useState<DropdownSlab[]>([]);
 
-  async function load() {
-    if (listingID === '') {
-      setSlab(null);
-      return;
-    }
-    const data = await api.getSlabForListing(Number(listingID));
-    setSlab(data);
-  }
+  // Find the selected slab from the `allSlabs` array
+  const selectedSlab = useMemo(() => {
+    if (listingID === '') return null;
+    return allSlabs.find(s => s.slabID === listingID) ?? null;
+  }, [listingID, allSlabs]);
 
   useEffect(() => {
-    api.listGradeSlabs().then(setAllSlabs);
+    // Load all graded listings for the dropdown
+    fetch('/api/grade-slabs/for-dropdown')
+      .then(res => res.json())
+      .then(setAllSlabs)
+      .catch(err => console.error('Failed to load slabs for dropdown', err));
   }, []);
-
-  useEffect(() => {
-    load();
-  }, [listingID]);
 
   return (
     <section className="space-y-6">
@@ -36,28 +35,31 @@ export default function GradeSlab() {
           <select
             className="input"
             value={listingID}
-            onChange={e => setListingID(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={e =>
+              setListingID(e.target.value === '' ? '' : Number(e.target.value))
+            }
           >
             <option value="">Select a slab...</option>
             {allSlabs.map(s => (
               <option key={s.slabID} value={s.slabID}>
-                Listing #{s.slabID} ({s.company?.name} {s.grade})
+                Listing #{s.slabID} ({s.companyName} {s.grade})
               </option>
             ))}
           </select>
         </label>
       </div>
 
-      {!slab ? (
+      {!selectedSlab ? (
         <div className="card">
-          <p className="text-neutral-300">No slab found for listing #{listingID}.</p>
+          <p className="text-neutral-300">
+            {listingID ? `No slab found for listing #${listingID}.` : 'Select a listing to see details.'}
+          </p>
         </div>
-
       ) : (
         <div className="card space-y-1">
-          <p><b>slabID:</b> {slab.slabID}</p>
-          <p><b>company:</b> {slab.company?.name} (scale {slab.company?.gradeScale})</p>
-          <p><b>grade:</b> {slab.grade}</p>
+          <p><b>Slab ID (Listing ID):</b> {selectedSlab.slabID}</p>
+          <p><b>Company:</b> {selectedSlab.companyName} (scale {selectedSlab.companyScale})</p>
+          <p><b>Grade:</b> {selectedSlab.grade}</p>
         </div>
       )}
     </section>
