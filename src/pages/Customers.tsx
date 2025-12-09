@@ -147,7 +147,6 @@ export default function Customers() {
       { key: 'email', header: 'Email' },
       { key: 'phone', header: 'Phone' },
       { key: 'shippingAddress', header: 'Address' },
-      { key: 'totalOrders', header: 'Total Orders' },
       {
         key: 'actions',
         header: 'Actions',
