@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type DropdownSlab = {
-  listingID: number;                    // 👈 comes from SQL: l.listingID
+  listingID: number;
   slabID: number;
   grade: number;
   companyName: string;

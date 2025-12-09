@@ -258,16 +258,18 @@ BEGIN
         gc.name       AS companyName,
         gc.gradeScale AS companyScale
     FROM Listings AS l
+
     JOIN GradeSlabs AS gs
-        ON gs.listingID = l.listingID    --  FIX: join on listingID
+        ON gs.slabID = l.listingID      -- 1-to-1: slabID ↔ listingID
+
     JOIN GradingCompanies AS gc
         ON gc.companyID = gs.companyID
+
     WHERE l.type = 'graded'
-    ORDER BY l.listingID, gs.slabID;
+    ORDER BY l.listingID;
 END//
 
 DELIMITER ;
-
 
 -- INSERT listing
 DROP PROCEDURE IF EXISTS sp_insert_listing;
