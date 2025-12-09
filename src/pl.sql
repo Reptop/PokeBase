@@ -84,7 +84,7 @@ DELIMITER //
 CREATE PROCEDURE sp_select_all_customers ()
 
 BEGIN
-    SELECT customerID, email, name, phone, shippingAddress, totalOrders
+    SELECT customerID, email, name, phone, shippingAddress
     FROM Customers
     ORDER BY customerID;
 END//

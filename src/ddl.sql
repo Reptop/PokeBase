@@ -29,8 +29,6 @@ BEGIN
         name VARCHAR(200) NOT NULL,
         phone VARCHAR(32) NOT NULL,
         shippingAddress VARCHAR(255) NOT NULL,
-        -- matches Step-3 DML that uses totalOrders; default keeps your sample
-        totalOrders INT NOT NULL DEFAULT 0
     );
 
     -- Cards (no FKs)

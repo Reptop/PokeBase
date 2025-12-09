@@ -334,24 +334,46 @@ app.put('/api/cards/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/cards/:id → delete card
+// DELETE /api/cards/:id → delete a card (and children via CASCADE if configured)
 app.delete('/api/cards/:id', async (req, res) => {
   const id = Number(req.params.id);
 
-  if (!Number.isInteger(id)) {
-    return res.status(400).json({ error: 'Invalid cardID' });
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid card ID' });
   }
 
   try {
-    await db.query('DELETE FROM Cards WHERE cardID = ?', [id]);
-    res.status(204).send();
+    console.log('DELETE /api/cards/:id → attempting delete for cardID =', id);
+
+    // Use your stored procedure
+    const [result] = await db.query('CALL sp_delete_card(?)', [id]);
+    console.log('sp_delete_card result:', JSON.stringify(result));
+
+    // Even if no row matched, 204 is fine (idempotent delete)
+    return res.status(204).send();
   }
 
   catch (err) {
-    console.error('DELETE /api/cards/:id failed:', err);
-    res.status(500).json({ error: 'Failed to delete card' });
+    console.error('DELETE /api/cards/:id failed:', {
+      code: err.code,
+      errno: err.errno,
+      message: err.sqlMessage,
+      sqlState: err.sqlState,
+    });
+
+    // Common MySQL FK error when a row is still referenced
+    if (err.code === 'ER_ROW_IS_REFERENCED_2' || err.errno === 1451) {
+      return res.status(409).json({
+        error:
+          'Cannot delete card because related Listings / OrderItems / GradeSlabs still reference it. ' +
+          'Either delete those first or ensure ON DELETE CASCADE is enabled.',
+      });
+    }
+
+    return res.status(500).json({ error: 'Failed to delete card' });
   }
 });
+
 
 // ================= Listings =================
 
@@ -722,7 +744,9 @@ app.get('/api/orders', async (req, res) => {
        ORDER BY orderID`
     );
     res.json(rows);
-  } catch (err) {
+  }
+
+  catch (err) {
     console.error('GET /api/orders failed:', err);
     res.status(500).json({ error: 'Failed to load orders' });
   }
